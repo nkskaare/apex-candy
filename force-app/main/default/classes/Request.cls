@@ -3,7 +3,6 @@
  */
 public virtual class Request implements IRequest {
   public HttpRequest httpRequest { get; private set; }
-  @TestVisible
   public Request.Response response { get; private set; }
   public Request.Url url { get; private set; }
   private Boolean authorized = true;
@@ -63,7 +62,6 @@ public virtual class Request implements IRequest {
   }
 
   public virtual class Response {
-    @TestVisible
     public HttpResponse httpResponse { get; private set; }
 
     public Response(HttpResponse response) {
@@ -79,6 +77,10 @@ public virtual class Request implements IRequest {
       return (Map<String, Object>) JSON.deserializeUntyped(
         this.httpResponse.getBody()
       );
+    }
+
+    public Object asObject(Type apexType) {
+      return JSON.deserialize(this.httpResponse.getBody(), apexType);
     }
 
     public String asString() {

@@ -1,4 +1,4 @@
-public class Logger {
+public virtual class Logger {
 
   public System.LoggingLevel logLevel {get; private set;}
   private Exception e;
@@ -9,19 +9,27 @@ public class Logger {
     this.throwException = false;
   }
 
-   public Logger() {
-    this(System.LoggingLevel.ERROR);
-   } 
+  public Logger() {
+    this(System.LoggingLevel.WARN);
+  } 
 
-   public Logger throwOnError(Exception e) {
-     this.e = e;
-     this.throwException = true;
-   }
 
-   public Logger setLoggingLevel(System.LoggingLevel logLevel) {
-     this.logLevel = logLevel;
-     return this;
-   }
+  /**
+   * Set Logger to throw runtime exceptions
+   */
+  public Logger throwOnError(Exception e) {
+    this.e = e;
+    this.throwException = true;
+    return this;
+  }
+
+  /**
+   * Set logging level
+   */
+  public Logger setLoggingLevel(System.LoggingLevel logLevel) {
+    this.logLevel = logLevel;
+    return this;
+  }
 
 
   /**
@@ -82,8 +90,8 @@ public class Logger {
    *
    * @param deleteResults List of save results after DML operation
    */
-  public static void upsertLog(
-    List<Database.UpsertResult> upsertResults,
+  public void upsertLog(
+    List<Database.UpsertResult> upsertResults
   ) {
     for (Database.UpsertResult upsertRes : upsertResults) {
       if (!upsertRes.success) {
@@ -110,7 +118,7 @@ public class Logger {
    *
    * @param saveResults List of save results after DML operation
    */
-  public static void duplicateSaveLog(
+  public void duplicateSaveLog(
     List<Database.SaveResult> saveResults
   ) {
     for (Database.SaveResult saveResult : saveResults) {

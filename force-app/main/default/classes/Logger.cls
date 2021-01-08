@@ -5,7 +5,7 @@ public virtual class Logger {
   public Boolean throwException;
 
   public Logger(System.LoggingLevel logLevel) {
-    this.setLoggingLevel(logLevel);
+    this.setLevel(logLevel);
     this.throwException = false;
   }
 
@@ -26,7 +26,7 @@ public virtual class Logger {
   /**
    * Set logging level
    */
-  public Logger setLoggingLevel(System.LoggingLevel logLevel) {
+  public Logger setLevel(System.LoggingLevel logLevel) {
     this.logLevel = logLevel;
     return this;
   }

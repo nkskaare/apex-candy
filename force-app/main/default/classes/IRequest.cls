@@ -1,6 +1,8 @@
 public interface IRequest {
 
   Boolean isAuthorized();
+
+  void authorize();
   
   void post(String body, String path);  
 

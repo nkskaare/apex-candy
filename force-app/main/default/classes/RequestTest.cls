@@ -1,5 +1,100 @@
 @IsTest
 public class RequestTest {
+  public virtual class SendMock implements HttpCalloutMock {
+    public String body;
+    public Integer statusCode;
+    public String status;
+
+    public String assertMethod;
+    public String assertEndpoint;
+    public String assertBody;
+    public Map<String, String> assertHeaders = new Map<String, String>();
+
+    public SendMock() {
+      this.body = '{"example":"test"}';
+      this.statusCode = 200;
+    }
+
+    public SendMock(Boolean success) {
+      if (success) {
+        this();
+      } else {
+        this.statusCode = 400;
+        this.status = 'Bad Request';
+      }
+    }
+
+    public SendMock(String body) {
+      this();
+      this.body = body;
+    }
+
+    public HttpResponse respond(HttpRequest req) {
+      this.assert(req);
+      return this.generateResponse();
+    }
+
+    public virtual HttpResponse generateResponse() {
+      HttpResponse res = new HttpResponse();
+      res.setHeader('Content-Type', 'application/json');
+      res.setStatusCode(this.statusCode);
+      if (this.body != null)
+        res.setBody(this.body);
+      if (this.status != null)
+        res.setStatus(this.status);
+      return res;
+    }
+
+    public virtual void assert(HttpRequest req) {
+      if (this.assertMethod != null)
+        System.assertEquals(this.assertMethod, req.getMethod());
+      if (this.assertEndpoint != null)
+        System.assertEquals(this.assertEndpoint, req.getEndpoint());
+      if (this.assertBody != null)
+        System.assertEquals(this.assertBody, req.getBody());
+      if (this.assertHeaders != null) {
+        for (String header : assertHeaders.keySet()) {
+          System.assertEquals(assertHeaders.get(header), req.getHeader(header));
+        }
+      }
+    }
+  }
+
+  public class GetMock extends SendMock {
+    public GetMock() {
+      super();
+      this.assertMethod = 'GET';
+    }
+  }
+
+  public class PostMock extends SendMock {
+    public PostMock() {
+      super();
+      this.assertMethod = 'POST';
+    }
+  }
+
+  public class PutMock extends SendMock {
+    public PutMock() {
+      super();
+      this.assertMethod = 'PUT';
+    }
+  }
+
+  public class PatchMock extends SendMock {
+    public PatchMock() {
+      super();
+      this.assertMethod = 'PATCH';
+    }
+  }
+
+  public class DelMock extends SendMock {
+    public DelMock() {
+      super();
+      this.assertMethod = 'DELETE';
+    }
+  }
+
   @IsTest
   static void testSetPath() {
     Request.Url url = new Request.Url('https://localhost/');
@@ -54,12 +149,11 @@ public class RequestTest {
   }
 
   @IsTest
-  static void testSetHostname(){
-
+  static void testSetHostname() {
     String hostname = 'https://localhost/';
 
     Request req = new Request();
-    
+
     Test.startTest();
     req.setHostname(hostname);
     System.assertEquals(hostname, req.url.hostname);
@@ -67,23 +161,21 @@ public class RequestTest {
   }
 
   @IsTest
-  static void testIsAuthorized(){
+  static void testIsAuthorized() {
     Request res = new Request();
-    
+
     Test.startTest();
     System.assert(res.isAuthorized());
     Test.stopTest();
   }
 
-
   @IsTest
-  static void testAsMap(){
-
+  static void testAsMap() {
     HttpResponse httpRes = new HttpResponse();
     httpRes.setBody('{"example":"test"}');
-    
+
     Request.Response res = new Request.Response(httpRes);
-    
+
     Test.startTest();
     Map<String, Object> resMap = res.asMap();
     System.assert(resMap.containsKey('example'));
@@ -92,41 +184,42 @@ public class RequestTest {
   }
 
   @IsTest
-  static void testAsString(){
+  static void testAsString() {
     String body = '{"example":"test"}';
     HttpResponse httpRes = new HttpResponse();
     httpRes.setBody(body);
-    
+
     Request.Response res = new Request.Response(httpRes);
-    
+
     Test.startTest();
     System.assertEquals(body, res.asString());
     Test.stopTest();
   }
 
   @IsTest
-  static void testResponseRaw(){
-    
+  static void testResponseRaw() {
     HttpResponse httpRes = new HttpResponse();
     httpRes.setBody('{"example":"test"}');
-    
+
     Request.Response res = new Request.Response(httpRes);
-    
+
     Test.startTest();
     System.assertEquals(httpRes, res.raw());
     Test.stopTest();
   }
 
   @IsTest
-  static void testAsObject(){
-
+  static void testAsObject() {
     String jsonString = '{"testString":"test", "testInt" : 1, "testBool" : false}';
-    
+
     HttpResponse httpRes = new HttpResponse();
     httpRes.setBody(jsonString);
-    
-    JsonObject expectedObj = (JsonObject) JSON.deserialize(jsonString, JsonObject.class);
-    
+
+    JsonObject expectedObj = (JsonObject) JSON.deserialize(
+      jsonString,
+      JsonObject.class
+    );
+
     Test.startTest();
     Request.Response res = new Request.Response(httpRes);
     JsonObject resObj = (JsonObject) res.asObject(JsonObject.class);
@@ -135,67 +228,6 @@ public class RequestTest {
     System.assertEquals(expectedObj.testInt, resObj.testInt);
     System.assertEquals(expectedObj.testString, resObj.testString);
     Test.stopTest();
-    
-  }
-
-
-  public virtual class SendMockSuccess implements HttpCalloutMock {
-
-    public String assertMethod;
-    public String assertEndpoint;
-    public String assertBody = '';
-    public Map<String, String> assertHeaders = new Map<String, String>();
-
-    public HttpResponse respond(HttpRequest req) {
-
-      System.assertEquals(this.assertMethod, req.getMethod());
-      System.assertEquals(this.assertEndpoint, req.getEndpoint());
-      System.assertEquals(this.assertBody, req.getBody());
-      for (String header : assertHeaders.keySet()) {
-        System.assertEquals(assertHeaders.get(header), req.getHeader(header)); 
-      }
-
-      HttpResponse res = new HttpResponse();
-      res.setHeader('Content-Type', 'application/json');
-      res.setBody('{"example":"test"}');
-      res.setStatusCode(200);
-      return res;
-    }
-  }
-
-  public class GetMock extends SendMockSuccess {
-    public GetMock() {
-      super();
-      this.assertMethod = 'GET';
-    }
-  }
-
-  public class PostMock extends SendMockSuccess {
-    public PostMock() {
-      super();
-      this.assertMethod = 'POST';
-    }
-  }
-
-  public class PutMock extends SendMockSuccess {
-    public PutMock() {
-      super();
-      this.assertMethod = 'PUT';
-    }
-  }
-
-  public class PatchMock extends SendMockSuccess {
-    public PatchMock() {
-      super();
-      this.assertMethod = 'PATCH';
-    }
-  }
-
-  public class DelMock extends SendMockSuccess {
-    public DelMock() {
-      super();
-      this.assertMethod = 'DELETE';
-    }
   }
 
   @IsTest
@@ -212,23 +244,14 @@ public class RequestTest {
     req.send();
 
     System.assertEquals(
-      req.response.httpResponse.getHeader('Content-Type'),
+      ((Request.Response) req.response).httpResponse.getHeader('Content-Type'),
       'application/json'
     );
     System.assertEquals(
-      req.response.httpResponse.getBody(),
+      ((Request.Response) req.response).httpResponse.getBody(),
       '{"example":"test"}'
     );
     Test.stopTest();
-  }
-
-  public class SendMockFailure implements HttpCalloutMock {
-    public HttpResponse respond(HttpRequest req) {
-      HttpResponse res = new HttpResponse();
-      res.setStatusCode(400);
-      res.setStatus('Bad Request');
-      return res;
-    }
   }
 
   @IsTest
@@ -237,14 +260,16 @@ public class RequestTest {
 
     req.httpRequest.setMethod('GET');
 
-    Test.setMock(HttpCalloutMock.class, new SendMockFailure());
+    SendMock mock = new SendMock(false);
+    mock.assertEndpoint = 'https://localhost/';
+    mock.assertMethod = 'GET';
+
+    Test.setMock(HttpCalloutMock.class, mock);
     Test.startTest();
     try {
       req.send();
       System.assert(false);
-    } catch (Request.RequestException e) {
-      System.assertEquals('https://localhost/', req.httpRequest.getEndpoint());
-      System.assertEquals('GET', req.httpRequest.getMethod());
+    } catch (Request.SendException e) {
       System.assertEquals('400 : Bad Request', e.getMessage());
     }
 
@@ -252,13 +277,13 @@ public class RequestTest {
   }
 
   @IsTest
-  static void testGet(){
+  static void testGet() {
     Request req = new Request('https://localhost/');
 
     GetMock mock = new GetMock();
     mock.assertEndpoint = 'https://localhost/get';
     Test.setMock(HttpCalloutMock.class, mock);
-    
+
     Test.startTest();
     req.get('get');
     System.assert(req.response.isSuccess());
@@ -296,7 +321,9 @@ public class RequestTest {
     System.assert(req.response.isSuccess());
 
     mock.assertEndpoint = 'https://localhost/map';
-    mock.assertHeaders = new Map<String, String> {'Content-Type' => 'application/json'};
+    mock.assertHeaders = new Map<String, String>{
+      'Content-Type' => 'application/json'
+    };
     mock.assertBody = ApplicationService.mapToJSON(mapBody);
 
     Test.setMock(HttpCalloutMock.class, mock);
@@ -338,7 +365,9 @@ public class RequestTest {
     System.assert(req.response.isSuccess());
 
     mock.assertEndpoint = 'https://localhost/map';
-    mock.assertHeaders = new Map<String, String> {'Content-Type' => 'application/json'};
+    mock.assertHeaders = new Map<String, String>{
+      'Content-Type' => 'application/json'
+    };
     mock.assertBody = ApplicationService.mapToJSON(mapBody);
 
     Test.setMock(HttpCalloutMock.class, mock);
@@ -354,7 +383,7 @@ public class RequestTest {
 
     Test.stopTest();
   }
-  
+
   @IsTest
   static void testPatch() {
     Request req = new Request('https://localhost/');
@@ -380,7 +409,9 @@ public class RequestTest {
     System.assert(req.response.isSuccess());
 
     mock.assertEndpoint = 'https://localhost/map';
-    mock.assertHeaders = new Map<String, String> {'Content-Type' => 'application/json'};
+    mock.assertHeaders = new Map<String, String>{
+      'Content-Type' => 'application/json'
+    };
     mock.assertBody = ApplicationService.mapToJSON(mapBody);
 
     Test.setMock(HttpCalloutMock.class, mock);
@@ -423,7 +454,9 @@ public class RequestTest {
     System.assert(req.response.isSuccess());
 
     mock.assertEndpoint = 'https://localhost/map';
-    mock.assertHeaders = new Map<String, String> {'Content-Type' => 'application/json'};
+    mock.assertHeaders = new Map<String, String>{
+      'Content-Type' => 'application/json'
+    };
     mock.assertBody = ApplicationService.mapToJSON(mapBody);
 
     Test.setMock(HttpCalloutMock.class, mock);

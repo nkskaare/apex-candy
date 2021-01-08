@@ -3,9 +3,8 @@
  */
 public virtual class Request implements IRequest {
   public HttpRequest httpRequest { get; private set; }
-  public Request.Response response { get; private set; }
+  public Request.IResponse response { get; private set; }
   public Request.Url url { get; private set; }
-  private Boolean authorized = true;
 
   public Request(String hostname) {
     this.httpRequest = new HttpRequest();
@@ -26,23 +25,22 @@ public virtual class Request implements IRequest {
     public Map<String, String> parameters { get; private set; }
 
     public Url(String hostname) {
-      this.hostname = hostname;
-      this.path = '';
-      this.parameters = new Map<String, String>();
+      this(hostname, '');
     }
 
     public Url(String hostname, String path) {
       this.hostname = hostname;
       this.setPath(path);
-      this.parameters = new Map<String, String>();
+      this.clearParameters();
     }
 
     /**
      * Sets url path
      * @param  path url path
      */
-    public void setPath(String path) {
+    public Url setPath(String path) {
       this.path = path;
+      return this;
     }
 
     /**
@@ -50,16 +48,35 @@ public virtual class Request implements IRequest {
      * @param field parameter field
      * @param value parameter value
      */
-    public void setParameter(String field, String value) {
+    public Url setParameter(String field, String value) {
       this.parameters.put(field, value);
+      return this;
+    }
+
+    /**
+     * Add a url parameter to querystring
+     * @param field parameter field
+     */
+    public Url setParameters(Map<String, String> parameters) {
+      this.parameters.putAll(parameters);
+      return this;
     }
 
     /**
      * Remove a url parameter from querystring
      * @param field parameter field
      */
-    public void removeParameter(String field) {
+    public Url removeParameter(String field) {
       this.parameters.remove(field);
+      return this;
+    }
+
+    /**
+     * Clear all url parameters
+     */
+    public Url clearParameters() {
+      this.parameters = new Map<String, String>();
+      return this;
     }
 
     /**
@@ -83,14 +100,29 @@ public virtual class Request implements IRequest {
     }
   }
 
+  public interface IResponse {
+    void setResponse(HttpResponse res);
+
+    Boolean isSuccess();
+
+    String status();
+  }
+
   /**
    * Response class serializes JSON. Works as a layer around HttpResponse.
    */
-  public virtual class Response {
+  public virtual class Response implements IResponse {
     public HttpResponse httpResponse { get; private set; }
 
-    public Response(HttpResponse response) {
-      this.httpResponse = response;
+    public Response() {
+    }
+
+    public Response(HttpResponse res) {
+      this.setResponse(res);
+    }
+
+    public void setResponse(HttpResponse res) {
+      this.httpResponse = res;
     }
 
     /**
@@ -100,6 +132,12 @@ public virtual class Request implements IRequest {
     public virtual Boolean isSuccess() {
       String statusCode = String.valueOf(this.httpResponse.getStatusCode());
       return (statusCode.left(1) == '2');
+    }
+
+    public virtual String status() {
+      return String.valueOf(this.httpResponse.getStatusCode()) +
+        ' : ' +
+        this.httpResponse.getStatus();
     }
 
     /**
@@ -133,7 +171,7 @@ public virtual class Request implements IRequest {
     }
   }
 
-  public class RequestException extends Exception {
+  public class SendException extends Exception {
   }
 
   /**
@@ -143,11 +181,29 @@ public virtual class Request implements IRequest {
     this.url = new Request.Url(hostname);
   }
 
+  public virtual void authorize() {
+  }
+
   /**
    * Can be extended and used with API's requiring authentication.
    */
   public virtual Boolean isAuthorized() {
-    return authorized;
+    return true;
+  }
+
+  public void resetRequest() {
+    this.httpRequest = new HttpRequest();
+    this.url.clearParameters();
+  }
+
+  public virtual void setResponse(HttpResponse res) {
+    Type cls = Type.forName('Request.Response');
+    this.setResponse(res, cls);
+  }
+
+  public void setResponse(HttpResponse res, Type cls) {
+    this.response = (IResponse) cls.newInstance();
+    this.response.setResponse(res);
   }
 
   /**
@@ -302,19 +358,16 @@ public virtual class Request implements IRequest {
 
   /**
    * Send request
-   * @throws RequestException
+   * @throws Request.SendException
    */
   public virtual void send() {
     this.httpRequest.setEndpoint(this.url.getEndpoint());
-    this.response = new Response(new Http().send(this.httpRequest));
+    System.debug(this.httpRequest.getEndpoint());
+    this.setResponse(new Http().send(this.httpRequest));
     if (!this.response.isSuccess()) {
-      throw new RequestException(
-        String.valueOf(response.httpResponse.getStatusCode()) +
-        ' : ' +
-        response.httpResponse.getStatus()
-      );
+      throw new SendException(this.response.status());
     }
-    this.httpRequest = new HttpRequest();
+    this.resetRequest();
   }
 
   /**

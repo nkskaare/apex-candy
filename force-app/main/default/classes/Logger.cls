@@ -33,12 +33,11 @@ public virtual class Logger {
 
 
   /**
-   * General DML save error logging, throws an exception on the first error encoutered
+   * General DML save error logging
    *
    * @param saveResults List of save results after DML operation
-   * @param exceptionObj The exception to throw
    */
-  public void saveLog(
+  public virtual void handleSave(
     List<Database.SaveResult> saveResults
   ) {
     for (Database.SaveResult saveRes : saveResults) {
@@ -60,11 +59,11 @@ public virtual class Logger {
   }
 
   /**
-   * General DML delete error logging, throws an exception on the first error encoutered
+   * General DML delete error logging
    *
    * @param deleteResults List of save results after DML operation
    */
-  public void deleteLog(
+  public virtual void handleDelete(
     List<Database.DeleteResult> deleteResults
   ) {
     for (Database.DeleteResult saveRes : deleteResults) {
@@ -86,11 +85,11 @@ public virtual class Logger {
   }
 
   /**
-   * General DML delete error logging, throws an exception on the first error encoutered
+   * General DML upsert error logging
    *
-   * @param deleteResults List of save results after DML operation
+   * @param upsertResults List of save results after DML operation
    */
-  public void upsertLog(
+  public virtual void handleUpsert(
     List<Database.UpsertResult> upsertResults
   ) {
     for (Database.UpsertResult upsertRes : upsertResults) {
@@ -114,11 +113,9 @@ public virtual class Logger {
   /**
    * General DML duplicate save error logging
    *
-   * ? TODO: Add exception throw
-   *
    * @param saveResults List of save results after DML operation
    */
-  public void duplicateSaveLog(
+  public void handleDuplicateSave(
     List<Database.SaveResult> saveResults
   ) {
     for (Database.SaveResult saveResult : saveResults) {
@@ -129,6 +126,7 @@ public virtual class Logger {
           saveResult.getId() +
           ' with errors: '
         );
+        String errorMessage;
         for (Database.Error error : saveResult.getErrors()) {
           if (error instanceof Database.DuplicateError) {
             Database.DuplicateError duplicateError = (Database.DuplicateError) error;
@@ -148,6 +146,7 @@ public virtual class Logger {
                 'MatchRecord: ' + matchRecord.getRecord()
               );
             }
+            errorMessage = duplicateResult.getErrorMessage();
           } else {
             System.debug(
               this.logLevel,
@@ -155,7 +154,14 @@ public virtual class Logger {
               ': ' +
               error.getMessage()
             );
+            errorMessage = error.getMessage();
           }
+
+          if (this.throwException) {
+            this.e.setMessage(errorMessage);
+            throw this.e;
+          }
+
         }
       }
     }

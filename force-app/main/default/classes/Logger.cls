@@ -31,6 +31,24 @@ public virtual class Logger {
     return this;
   }
 
+  /**
+   * General database error logging and exception throw
+   * 
+   * @param err Database error object
+   */
+  public virtual void handleError(Database.Error err) {
+    System.debug(
+      this.logLevel,
+      err.getStatusCode() +
+      ' : ' +
+      err.getMessage()
+    );
+
+    if (this.throwException) {
+      this.e.setMessage(err.getMessage());
+      throw this.e;
+    }
+  }
 
   /**
    * General DML save error logging
@@ -43,16 +61,7 @@ public virtual class Logger {
     for (Database.SaveResult saveRes : saveResults) {
       if (!saveRes.success) {
         for (Database.Error err : saveRes.getErrors()) {
-          System.debug(
-            this.logLevel,
-            err.getStatusCode() +
-            ' : ' +
-            err.getMessage()
-          );
-          if (this.throwException) {
-            this.e.setMessage(err.getMessage());
-            throw this.e;
-          }
+          this.handleError(err);
         }
       }
     }
@@ -69,16 +78,7 @@ public virtual class Logger {
     for (Database.DeleteResult saveRes : deleteResults) {
       if (!saveRes.success) {
         for (Database.Error err : saveRes.getErrors()) {
-          System.debug(
-            this.logLevel,
-            err.getStatusCode() +
-            ' : ' +
-            err.getMessage()
-          );
-          if (this.throwException) {
-            this.e.setMessage(err.getMessage());
-            throw this.e;
-          }
+          this.handleError(err);
         }
       }
     }
@@ -95,16 +95,7 @@ public virtual class Logger {
     for (Database.UpsertResult upsertRes : upsertResults) {
       if (!upsertRes.success) {
         for (Database.Error err : upsertRes.getErrors()) {
-          System.debug(
-            this.logLevel,
-            err.getStatusCode() +
-            ' : ' +
-            err.getMessage()
-          );
-          if (this.throwException) {
-            this.e.setMessage(err.getMessage());
-            throw this.e;
-          }
+          this.handleError(err);
         }
       }
     }
@@ -115,7 +106,7 @@ public virtual class Logger {
    *
    * @param saveResults List of save results after DML operation
    */
-  public void handleDuplicateSave(
+  public virtual void handleDuplicateSave(
     List<Database.SaveResult> saveResults
   ) {
     for (Database.SaveResult saveResult : saveResults) {
@@ -126,7 +117,7 @@ public virtual class Logger {
           saveResult.getId() +
           ' with errors: '
         );
-        String errorMessage;
+
         for (Database.Error error : saveResult.getErrors()) {
           if (error instanceof Database.DuplicateError) {
             Database.DuplicateError duplicateError = (Database.DuplicateError) error;
@@ -146,22 +137,15 @@ public virtual class Logger {
                 'MatchRecord: ' + matchRecord.getRecord()
               );
             }
-            errorMessage = duplicateResult.getErrorMessage();
+
+            if (this.throwException) {
+              this.e.setMessage(duplicateResult.getErrorMessage());
+              throw this.e;
+            }
+
           } else {
-            System.debug(
-              this.logLevel,
-              error.getStatusCode() +
-              ': ' +
-              error.getMessage()
-            );
-            errorMessage = error.getMessage();
+            this.handleError(error);
           }
-
-          if (this.throwException) {
-            this.e.setMessage(errorMessage);
-            throw this.e;
-          }
-
         }
       }
     }

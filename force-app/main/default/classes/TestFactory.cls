@@ -18,14 +18,26 @@ public class TestFactory {
     this.uow = uow;
   }
 
+  /**
+   * Instantiator used when creating data which will be commited to database
+   */
   public static TestFactory newInstance() {
     return new TestFactory(true);
   }
 
+  /**
+   * Instantiator used when creating data which will be commited to database
+   * Pass an already instance of UnitOfWork
+   * 
+   * @param uow UnitOfWork
+   */
   public static TestFactory newInstance(fflib_ISObjectUnitOfWork uow) {
     return new TestFactory(uow);
   }
 
+  /**
+   * Instantiator used when creating data which will NOT be commited to database
+   */
   public static TestFactory mock() {
     return new TestFactory(false);
   }

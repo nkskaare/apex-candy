@@ -5,24 +5,31 @@ public class TestFactory {
   public Schema.SObjectType sObjectType { get; private set; }
   public fflib_ISObjectUnitOfWork uow { get; private set; }
   public Boolean commitData { get; private set; }
-
-  public TestFactory() {
-    this.commitData = true;
-    this.uow = Application.UnitOfWork.newInstance();
-  }
-
-  public TestFactory(Boolean commitData) {
+  
+  private TestFactory(Boolean commitData) {
+    this.commitData = commitData;
     if (commitData) {
-      this();
-    } else {
-      this.commitData = false;
+      this.uow = Application.UnitOfWork.newInstance();
     }
   }
 
-  public TestFactory(fflib_ISObjectUnitOfWork uow) {
+  private TestFactory(fflib_ISObjectUnitOfWork uow) {
     this.commitData = true;
     this.uow = uow;
   }
+
+  public static TestFactory newInstance() {
+    return new TestFactory(true);
+  }
+
+  public static TestFactory newInstance(fflib_ISObjectUnitOfWork uow) {
+    return new TestFactory(uow);
+  }
+
+  public static TestFactory mock() {
+    return new TestFactory(false);
+  }
+
 
   public class TestFactoryException extends Exception {
   }
@@ -139,9 +146,8 @@ public class TestFactory {
    */
   public TestFactory addSObject(SObject sObj, String relationshipName) {
 
-    if (testData.isEmpty()) {
+    if (this.testData.isEmpty())
       throw new TestFactoryException('Test data must be created before test data can be added');
-    }
 
     for (SObject data : testData) {
       if (commitData) {
@@ -176,7 +182,7 @@ public class TestFactory {
       return this;
     } else {
       throw new TestFactoryException(
-        'Test Factory not initalized with commitData option'
+        'Cannot commit data when creating mock data'
       );
     }
   }
@@ -186,6 +192,8 @@ public class TestFactory {
    * @return this
    */
   public TestFactory addMockId() {
+    if (commitData) throw new TestFactoryException('Cannot add mock Id when commiting data');
+
     for (SObject data : testData) {
       data.put('Id', fflib_IDGenerator.generate(sObjectType));
     }

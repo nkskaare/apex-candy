@@ -7,7 +7,7 @@ public class TestFactoryTest {
     @IsTest
     static void createOpportunityWithAccount(){
 
-        List<Opportunity> opps = new TestFactory(false).createOpportunities(5).addAccount().getData();
+        List<Opportunity> opps = TestFactory.mock().createOpportunities(5).addAccount().getData();
 
         System.assertEquals(5, opps.size());
         for (Opportunity opp : opps) {

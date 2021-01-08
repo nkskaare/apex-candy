@@ -1,3 +1,7 @@
+/**
+ * Logger class, creating debug messages from Database results 
+ * and more (?)
+ */
 public virtual class Logger {
 
   public System.LoggingLevel logLevel {get; private set;}
@@ -79,9 +83,9 @@ public virtual class Logger {
   public virtual void handleDelete(
     List<Database.DeleteResult> deleteResults
   ) {
-    for (Database.DeleteResult saveRes : deleteResults) {
-      if (!saveRes.success) {
-        for (Database.Error err : saveRes.getErrors()) {
+    for (Database.DeleteResult deleteRes : deleteResults) {
+      if (!deleteRes.success) {
+        for (Database.Error err : deleteRes.getErrors()) {
           this.handleError(err);
         }
       }

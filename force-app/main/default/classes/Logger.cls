@@ -16,6 +16,8 @@ public virtual class Logger {
 
   /**
    * Set Logger to throw runtime exceptions
+   * 
+   * @param e class instance of Exception or class extending Exception
    */
   public Logger throwOnError(Exception e) {
     this.e = e;
@@ -25,6 +27,8 @@ public virtual class Logger {
 
   /**
    * Set logging level
+   * 
+   * @param logLevel System.LogginLevel enum
    */
   public Logger setLevel(System.LoggingLevel logLevel) {
     this.logLevel = logLevel;

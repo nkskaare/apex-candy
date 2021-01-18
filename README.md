@@ -1,4 +1,4 @@
-![alt text](https://github.com/nkskaare/apex-candy/master/Codey.png)
+![](Codey.png)
 
 # Apex Candy
 
@@ -54,11 +54,21 @@ A GET call to `https://test.api.com/users?n=5` would then simply be done by
 
 ### TestFactory
 
-Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field.
+Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field. When using the `mock()` method on TestFactory the created data will not be possible to commit to the database. 
 
 ```
   List<Opportunity> opps = TestFactory.mock()
     .createOpportunities(5)
     .addAccount()
+    .getData();
+```
+
+If the test data should be commited to the database, the TestFactory could be instantiated by the `newInstance()` method. The same data can then be created and commited as following. 
+
+```
+  List<Opportunity> opps = TestFactory.newInstance()
+    .createOpportunities(5)
+    .addAccount()
+    .commitWork()
     .getData();
 ```

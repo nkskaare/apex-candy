@@ -4,17 +4,17 @@
 
 This repository contains some useful methods to make the life of an Apex Developer easier. Classes which can be extended and methods which can be tweaked to meet your specific demands.
 
-### Get started
+## Get started
 
 Clone this repo and deploy the classes to your org. 
 
-> Note that some of the classes are dependent on ![FFlib](https://github.com/apex-enterprise-patterns/fflib-apex-mocks)
+> Note that some of the classes are dependent on [FFlib](https://github.com/apex-enterprise-patterns/fflib-apex-mocks)
 
-### Examples
+## Examples
 
-#### Request
+### Request
 
-Usage example of Request class and how to make a simple GET request against an API with the full url 'https://hostname.com/end/point?param=1', and get the returned JSON parsed into a Map.
+Usage example of Request class and how to make a simple GET request against an API with the full url `https://hostname.com/end/point?param=1`, and get the returned JSON parsed into a Map.
 
 ```
   Request req = new Request('https://hostname.com/');
@@ -43,16 +43,16 @@ The real power of the request class is that it can be extended to easily build a
 
 ```
 
-A http call equivalent to 'https://test.api.com/users?n=5' would then simply be done by
+A http call equivalent to `https://test.api.com/users?n=5` would then simply be done by
 
 ```
   TestClient client = new TestClient();
-  client.getUsers();
+  client.getUsers(5);
   
   Map<String, Object> res = ((Request.Response) client.response).asMap();
 ```
 
-#### TestFactory
+### TestFactory
 
 Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field.
 

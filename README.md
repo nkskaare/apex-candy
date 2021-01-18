@@ -1,4 +1,4 @@
-![alt text](Codey.png)
+![alt text](https://github.com/nkskaare/apex-candy/blob/master/Codey.png?raw=true)
 
 # Apex Candy
 

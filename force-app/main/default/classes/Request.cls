@@ -1,5 +1,5 @@
 /**
- * General usage class for REST API's with JSON support and URL construction. Works as a layer around HttpRequest.
+ * General HTTP client for REST API's with JSON support and URL construction. Works as a layer around HttpRequest and HttpResponse objects.
  */
 public virtual class Request implements IRequest {
   public HttpRequest httpRequest { get; private set; }

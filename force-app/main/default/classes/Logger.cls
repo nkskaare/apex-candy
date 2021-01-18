@@ -1,10 +1,9 @@
 /**
- * Logger class, creating debug messages from Database results 
+ * Logger class, creating debug messages from Database results
  * and more (?)
  */
 public virtual class Logger {
-
-  public System.LoggingLevel logLevel {get; private set;}
+  public System.LoggingLevel logLevel { get; private set; }
   private Exception e;
   public Boolean throwException;
 
@@ -15,12 +14,11 @@ public virtual class Logger {
 
   public Logger() {
     this(System.LoggingLevel.WARN);
-  } 
-
+  }
 
   /**
    * Set Logger to throw runtime exceptions
-   * 
+   *
    * @param e class instance of Exception or class extending Exception
    */
   public Logger throwOnError(Exception e) {
@@ -31,7 +29,7 @@ public virtual class Logger {
 
   /**
    * Set logging level
-   * 
+   *
    * @param logLevel System.LogginLevel enum
    */
   public Logger setLevel(System.LoggingLevel logLevel) {
@@ -41,16 +39,11 @@ public virtual class Logger {
 
   /**
    * General database error logging and exception throw
-   * 
+   *
    * @param err Database error object
    */
   public virtual void handleError(Database.Error err) {
-    System.debug(
-      this.logLevel,
-      err.getStatusCode() +
-      ' : ' +
-      err.getMessage()
-    );
+    System.debug(this.logLevel, err.getStatusCode() + ' : ' + err.getMessage());
 
     if (this.throwException) {
       this.e.setMessage(err.getMessage());
@@ -63,9 +56,7 @@ public virtual class Logger {
    *
    * @param saveResults List of save results after DML operation
    */
-  public virtual void handleSave(
-    List<Database.SaveResult> saveResults
-  ) {
+  public virtual void handleSave(List<Database.SaveResult> saveResults) {
     for (Database.SaveResult saveRes : saveResults) {
       if (!saveRes.success) {
         for (Database.Error err : saveRes.getErrors()) {
@@ -80,9 +71,7 @@ public virtual class Logger {
    *
    * @param deleteResults List of save results after DML operation
    */
-  public virtual void handleDelete(
-    List<Database.DeleteResult> deleteResults
-  ) {
+  public virtual void handleDelete(List<Database.DeleteResult> deleteResults) {
     for (Database.DeleteResult deleteRes : deleteResults) {
       if (!deleteRes.success) {
         for (Database.Error err : deleteRes.getErrors()) {
@@ -97,9 +86,7 @@ public virtual class Logger {
    *
    * @param upsertResults List of save results after DML operation
    */
-  public virtual void handleUpsert(
-    List<Database.UpsertResult> upsertResults
-  ) {
+  public virtual void handleUpsert(List<Database.UpsertResult> upsertResults) {
     for (Database.UpsertResult upsertRes : upsertResults) {
       if (!upsertRes.success) {
         for (Database.Error err : upsertRes.getErrors()) {
@@ -150,7 +137,6 @@ public virtual class Logger {
               this.e.setMessage(duplicateResult.getErrorMessage());
               throw this.e;
             }
-
           } else {
             this.handleError(error);
           }
@@ -158,5 +144,4 @@ public virtual class Logger {
       }
     }
   }
-
 }

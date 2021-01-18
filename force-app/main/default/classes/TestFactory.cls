@@ -1,11 +1,10 @@
 @isTest
 public class TestFactory {
-
   public List<SObject> testData { get; private set; }
   public Schema.SObjectType sObjectType { get; private set; }
   public fflib_ISObjectUnitOfWork uow { get; private set; }
   public Boolean commitData { get; private set; }
-  
+
   private TestFactory(Boolean commitData) {
     this.commitData = commitData;
     if (commitData) {
@@ -28,7 +27,7 @@ public class TestFactory {
   /**
    * Instantiator used when creating data which will be commited to database
    * Pass an already instance of UnitOfWork
-   * 
+   *
    * @param uow UnitOfWork
    */
   public static TestFactory newInstance(fflib_ISObjectUnitOfWork uow) {
@@ -41,7 +40,6 @@ public class TestFactory {
   public static TestFactory mock() {
     return new TestFactory(false);
   }
-
 
   public class TestFactoryException extends Exception {
   }
@@ -157,9 +155,10 @@ public class TestFactory {
    * @return this
    */
   public TestFactory addSObject(SObject sObj, String relationshipName) {
-
     if (this.testData.isEmpty())
-      throw new TestFactoryException('Test data must be created before test data can be added');
+      throw new TestFactoryException(
+        'Test data must be created before test data can be added'
+      );
 
     for (SObject data : testData) {
       if (commitData) {
@@ -204,7 +203,8 @@ public class TestFactory {
    * @return this
    */
   public TestFactory addMockId() {
-    if (commitData) throw new TestFactoryException('Cannot add mock Id when commiting data');
+    if (commitData)
+      throw new TestFactoryException('Cannot add mock Id when commiting data');
 
     for (SObject data : testData) {
       data.put('Id', fflib_IDGenerator.generate(sObjectType));
@@ -246,7 +246,6 @@ public class TestFactory {
     }
   }
 
-
   /**
    * Create Accounts
    * @param numberOfRecords the number of records to create
@@ -285,7 +284,6 @@ public class TestFactory {
     return this.createSObjects(opportunityList);
   }
 
-
   /**
    * Create Contacts
    * @param numberOfRecords the number of records to create
@@ -302,7 +300,6 @@ public class TestFactory {
     return this.createSObjects(contactList);
   }
 
-
   /**
    * Create Products
    * @param numberOfRecords the number of records to create
@@ -317,7 +314,6 @@ public class TestFactory {
 
     return this.createSObjects(productList);
   }
-
 
   public TestFactory createUsers(Integer numberOfRecords) {
     List<User> testUsers = new List<User>();
@@ -335,5 +331,4 @@ public class TestFactory {
     }
     return createSObjects(testUsers);
   }
-
 }

@@ -1,4 +1,4 @@
-![alt text](https://github.com/nkskaare/apex-candy/blob/master/Codey.png?raw=true)
+![alt text](https://github.com/nkskaare/apex-candy/master/Codey.png)
 
 # Apex Candy
 
@@ -43,7 +43,7 @@ The real power of the request class is that it can be extended to easily build a
 
 ```
 
-A http call equivalent to `https://test.api.com/users?n=5` would then simply be done by
+A GET call to `https://test.api.com/users?n=5` would then simply be done by
 
 ```
   TestClient client = new TestClient();

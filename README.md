@@ -1,4 +1,4 @@
-![alt text](https://www.salesforce.com/news/wp-content/uploads/sites/3/2020/08/Codey.png)
+![alt text](Codey.png)
 
 # Apex Candy
 

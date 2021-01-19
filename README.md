@@ -28,10 +28,10 @@ Usage example of Request class and how to make a simple GET request against an A
 The real power of the request class is that it can be extended to easily build a simple client.
 
 ```
-  class TestClient extends Request {
+  class ExampleClient extends Request {
 
     public TestClient() {
-      super('https://test.api.com/');
+      super('https://example.api.com/');
     }
     
     public void getUsers(Integer numberOfUsers) {
@@ -43,7 +43,7 @@ The real power of the request class is that it can be extended to easily build a
 
 ```
 
-A GET call to `https://test.api.com/users?n=5` would then simply be done by
+A GET call to `https://example.api.com/users?n=5` would then simply be done by
 
 ```
   TestClient client = new TestClient();
@@ -54,7 +54,7 @@ A GET call to `https://test.api.com/users?n=5` would then simply be done by
 
 ### TestFactory
 
-Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field. When using the `mock()` method on TestFactory the created data will not be possible to commit to the database. 
+Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field. When using the `mock()` method on TestFactory the created data will not be possible to commit to the database. Related objects will be added directly on the object as if retrieved through a relationship query.
 
 ```
   List<Opportunity> opps = TestFactory.mock()
@@ -71,4 +71,16 @@ If the test data should be commited to the database, the TestFactory could be in
     .addAccount()
     .commitWork()
     .getData();
+```
+
+### Logger
+
+The logger class encapsulates debug messages. By using this class, resulting code is cleaner and debugging is simplified. 
+
+```
+  List<Database.Saveresults> sr = Database.insert(accounts, false);
+  
+  Logger log = new Logger(System.LoggingLevel.INFO);
+  log.handleSave(sr);
+  
 ```

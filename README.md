@@ -30,7 +30,7 @@ The real power of the request class is that it can be extended to easily build a
 ```
   class ExampleClient extends Request {
 
-    public TestClient() {
+    public ExampleClient() {
       super('https://example.api.com/');
     }
     
@@ -46,7 +46,7 @@ The real power of the request class is that it can be extended to easily build a
 A GET call to `https://example.api.com/users?n=5` would then simply be done by
 
 ```
-  TestClient client = new TestClient();
+  ExampleClient client = new ExampleClient();
   client.getUsers(5);
   
   Map<String, Object> res = ((Request.Response) client.response).asMap();

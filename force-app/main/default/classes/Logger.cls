@@ -42,12 +42,14 @@ public virtual class Logger {
    *
    * @param err Database error object
    */
-  public virtual void handleError(Database.Error err) {
-    System.debug(this.logLevel, err.getStatusCode() + ' : ' + err.getMessage());
+  public virtual void handleError(List<Database.Error> errors) {
+    for (Database.Error err : errors) {
+      System.debug(this.logLevel, err.getStatusCode() + ' : ' + err.getMessage());
 
-    if (this.throwException) {
-      this.e.setMessage(err.getMessage());
-      throw this.e;
+      if (this.throwException) {
+        this.e.setMessage(err.getMessage());
+        throw this.e;
+      }
     }
   }
 
@@ -59,9 +61,7 @@ public virtual class Logger {
   public virtual void handleSave(List<Database.SaveResult> saveResults) {
     for (Database.SaveResult saveRes : saveResults) {
       if (!saveRes.success) {
-        for (Database.Error err : saveRes.getErrors()) {
-          this.handleError(err);
-        }
+        this.handleError(saveRes.getErrors());
       }
     }
   }
@@ -74,9 +74,7 @@ public virtual class Logger {
   public virtual void handleDelete(List<Database.DeleteResult> deleteResults) {
     for (Database.DeleteResult deleteRes : deleteResults) {
       if (!deleteRes.success) {
-        for (Database.Error err : deleteRes.getErrors()) {
-          this.handleError(err);
-        }
+        this.handleError(deleteRes.getErrors());
       }
     }
   }
@@ -89,9 +87,7 @@ public virtual class Logger {
   public virtual void handleUpsert(List<Database.UpsertResult> upsertResults) {
     for (Database.UpsertResult upsertRes : upsertResults) {
       if (!upsertRes.success) {
-        for (Database.Error err : upsertRes.getErrors()) {
-          this.handleError(err);
-        }
+        this.handleError(upsertRes.getErrors());
       }
     }
   }
@@ -138,7 +134,7 @@ public virtual class Logger {
               throw this.e;
             }
           } else {
-            this.handleError(error);
+            this.handleError(new List<Database.Error> {error});
           }
         }
       }

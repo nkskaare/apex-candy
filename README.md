@@ -1,4 +1,4 @@
-![alt text](https://github.com/nkskaare/apex-candy/blob/master/Codey.png?raw=true)
+![](Codey.png)
 
 # Apex Candy
 
@@ -28,10 +28,10 @@ Usage example of Request class and how to make a simple GET request against an A
 The real power of the request class is that it can be extended to easily build a simple client.
 
 ```
-  class TestClient extends Request {
+  class ExampleClient extends Request {
 
-    public TestClient() {
-      super('https://test.api.com/');
+    public ExampleClient() {
+      super('https://example.api.com/');
     }
     
     public void getUsers(Integer numberOfUsers) {
@@ -43,10 +43,10 @@ The real power of the request class is that it can be extended to easily build a
 
 ```
 
-A http call equivalent to `https://test.api.com/users?n=5` would then simply be done by
+A GET call to `https://example.api.com/users?n=5` would then simply be done by
 
 ```
-  TestClient client = new TestClient();
+  ExampleClient client = new ExampleClient();
   client.getUsers(5);
   
   Map<String, Object> res = ((Request.Response) client.response).asMap();
@@ -54,11 +54,33 @@ A http call equivalent to `https://test.api.com/users?n=5` would then simply be 
 
 ### TestFactory
 
-Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field.
+Simple example of how to create 5 Opportunities with an Account record on the Opportunity.Account field. When using the `mock()` method on TestFactory the created data will not be possible to commit to the database. Related objects will be added directly on the object as if retrieved through a relationship query.
 
 ```
   List<Opportunity> opps = TestFactory.mock()
     .createOpportunities(5)
     .addAccount()
     .getData();
+```
+
+If the test data should be commited to the database, the TestFactory could be instantiated by the `newInstance()` method. The same data can then be created and commited as following. 
+
+```
+  List<Opportunity> opps = TestFactory.newInstance()
+    .createOpportunities(5)
+    .addAccount()
+    .commitWork()
+    .getData();
+```
+
+### Logger
+
+The logger class encapsulates debug messages. By using this class, resulting code is cleaner and debugging is simplified. 
+
+```
+  List<Database.Saveresults> sr = Database.insert(accounts, false);
+  
+  Logger log = new Logger(System.LoggingLevel.INFO);
+  log.handleSave(sr);
+  
 ```

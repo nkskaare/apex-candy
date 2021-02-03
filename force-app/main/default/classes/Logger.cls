@@ -40,11 +40,16 @@ public virtual class Logger {
   /**
    * General database error logging and exception throw
    *
-   * @param err Database error object
+   * @param errors List of Database error objects
    */
   public virtual void handleError(List<Database.Error> errors) {
     for (Database.Error err : errors) {
-      System.debug(this.logLevel, err.getStatusCode() + ' : ' + err.getMessage());
+      System.debug(
+        this.logLevel,
+        err.getStatusCode() +
+        ' : ' +
+        err.getMessage()
+      );
 
       if (this.throwException) {
         this.e.setMessage(err.getMessage());
@@ -69,7 +74,7 @@ public virtual class Logger {
   /**
    * General DML delete error logging
    *
-   * @param deleteResults List of save results after DML operation
+   * @param deleteResults List of delete results after DML operation
    */
   public virtual void handleDelete(List<Database.DeleteResult> deleteResults) {
     for (Database.DeleteResult deleteRes : deleteResults) {
@@ -82,7 +87,7 @@ public virtual class Logger {
   /**
    * General DML upsert error logging
    *
-   * @param upsertResults List of save results after DML operation
+   * @param upsertResults List of upsert results after DML operation
    */
   public virtual void handleUpsert(List<Database.UpsertResult> upsertResults) {
     for (Database.UpsertResult upsertRes : upsertResults) {
@@ -134,10 +139,45 @@ public virtual class Logger {
               throw this.e;
             }
           } else {
-            this.handleError(new List<Database.Error> {error});
+            this.handleError(new List<Database.Error>{ error });
           }
         }
       }
+    }
+  }
+
+  public class StackTrace {
+    public String traceString { get; private set; }
+    public Integer line { get; private set; }
+    public String caller {
+      get {
+        return this.traceString.substringAfterLast('Logger.')
+          .substringAfter('\n');
+      }
+    }
+
+    public String className {
+      get {
+        String str = caller;
+        if (caller.startsWith('Class.')) {
+          str = caller.substringAfter('Class.');
+        }
+        return str.substringBefore(':').substringBeforeLast('.');
+      }
+    }
+
+    public String methodName {
+      get {
+        return caller.substringBefore(':').substringAfterLast('.');
+      }
+    }
+
+    /**
+     * @param e Exception to trace
+     */
+    public StackTrace(Exception e) {
+      this.traceString = e.getStackTraceString();
+      this.line = e.getLineNumber();
     }
   }
 }

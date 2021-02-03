@@ -75,7 +75,7 @@ public virtual class Request implements IRequest {
      * Clear all url parameters
      */
     public Url clearParameters() {
-      this.parameters = new Map<String, String>();
+      this.parameters.clear();
       return this;
     }
 

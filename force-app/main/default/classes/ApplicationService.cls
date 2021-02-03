@@ -87,12 +87,12 @@ public virtual class ApplicationService {
     List<SObject> sObjects,
     String field
   ) {
-    Type mapType = Type.forName(
-      'Map<String,' +
-      sObjects.getSObjectType() +
-      '>'
-    );
-    Map<String, SObject> sObjectMap = (Map<String, SObject>) mapType.newInstance();
+    Map<String, SObject> sObjectMap = (Map<String, SObject>) Type.forName(
+        'Map<String,' +
+        sObjects.getSObjectType() +
+        '>'
+      )
+      .newInstance();
     for (SObject sObj : sObjects) {
       if (sObj.isSet(field)) {
         sObjectMap.put(String.valueOf(sObj.get(field)), sObj);
@@ -224,11 +224,9 @@ public virtual class ApplicationService {
     }
   }
 
-
-
   /**
    * Converts a map of different datatypes, but depth of 1, to a JSON string
-   * 
+   *
    * @param dataMap
    */
   public static String mapToJSON(Map<String, Object> dataMap) {
@@ -265,6 +263,4 @@ public virtual class ApplicationService {
     generator.close();
     return generator.getAsString();
   }
-
-
 }

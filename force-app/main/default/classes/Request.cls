@@ -206,6 +206,12 @@ public virtual class Request implements IRequest {
     this.response.setResponse(res);
   }
 
+  public void setHeaders(Map<String, String> headers) {
+    for (String key : headers.keySet()) {
+      this.httpRequest.setHeader(key, headers.get(key));
+    }
+  }
+
   /**
    * Make POST call
    * @param body Request body

@@ -15,7 +15,7 @@ public class Filter {
     List<SObject> records;
 
     public FilterManager(List<SObject> records) {
-      this.records = records;
+      this.records = records.clone();
       this.compares = new List<Filter.Comparison>();
       this.conditionals = new List<Filter.IConditional>();
     }
@@ -28,6 +28,9 @@ public class Filter {
       this.conditionals.add(cond);
     }
 
+    /**
+     * Iterates through records and the registerd
+     */
     public List<SObject> runFilter() {
       List<SObject> resultList = new List<SObject>();
 
@@ -244,6 +247,10 @@ public class Filter {
       return new ComparisonBuilder(field, this.manager);
     }
 
+    /**
+     * Xor condition. Boolean state is cumulative, using this condition 
+     * will affect all previous conditions.
+     */
     public ComparisonBuilder xorField(String field) {
       this.manager.addConditional(
         new C_Xor()
@@ -251,6 +258,10 @@ public class Filter {
       return new ComparisonBuilder(field, this.manager);
     }
 
+    /**
+     * Nor condition. Boolean state is cumulative, using this negative condition 
+     * will invert all previous conditions.
+     */
     public ComparisonBuilder norField(String field) {
       this.manager.addConditional(
         new C_Nor()
@@ -284,11 +295,18 @@ public class Filter {
       return a || b;
     }
   } 
+
+  /**
+   * XOR logic implementation
+   */
   private class C_Xor implements IConditional {
     public Boolean resolve(Boolean a, Boolean b) {
       return (a || b) && !(a || b);
     }
   } 
+  /**
+   * NOR logic implementation
+   */
   private class C_Nor implements IConditional {
     public Boolean resolve(Boolean a, Boolean b) {
       return !(a || b);

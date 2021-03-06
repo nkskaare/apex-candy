@@ -1,45 +1,30 @@
 public class Filter {
-  ConditionalManager manager;
-
-  private enum Operator {
-    equals,
-    notEquals,
-    lessThan,
-    greaterThan,
-    lessThanOrEq,
-    greaterThanOrEq
-  }
-
-  private enum Condition {
-    c_and,
-    c_nand,
-    c_or,
-    c_xor,
-    c_nor
-  }
+  FilterManager manager;
 
   public Filter(List<SObject> records) {
-    this.manager = new ConditionalManager(records);
+    this.manager = new FilterManager(records);
   }
 
-  public Compare byField(String field) {
-    return new Compare(field, this.manager);
+  public ComparisonBuilder byField(String field) {
+    return new ComparisonBuilder(field, this.manager);
   }
 
-  private class ConditionalManager {
-    List<Compare> compares;
-    List<Filter.Condition> conditionals;
+  private class FilterManager {
+    List<Filter.Comparison> compares;
+    List<Filter.IConditional> conditionals;
     List<SObject> records;
 
-    public ConditionalManager(List<SObject> records) {
+    public FilterManager(List<SObject> records) {
       this.records = records;
+      this.compares = new List<Filter.Comparison>();
+      this.conditionals = new List<Filter.IConditional>();
     }
 
-    public void addCompare(Compare comp) {
+    public void addComparison(Comparison comp) {
       this.compares.add(comp);
     }
 
-    public void addCondition(Filter.Condition cond) {
+    public void addConditional(Filter.IConditional cond) {
       this.conditionals.add(cond);
     }
 
@@ -47,16 +32,15 @@ public class Filter {
       List<SObject> resultList = new List<SObject>();
 
       for (SObject record : this.records) {
-        Compare firstCompare = this.compares.get(0);
-        Boolean state = new Comparison(record).compare(firstCompare);
+        Comparison firstCompare = this.compares.get(0);
+        Boolean state = firstCompare.compare(record);
 
         if (this.conditionals.size() > 0) {
           for (Integer i = 0; i < this.conditionals.size(); i++) {
-            Filter.Condition cond = this.conditionals.get(i);
-            Compare comp = this.compares.get(i + 1);
+            Filter.IConditional condition = this.conditionals.get(i);
+            Comparison compare = this.compares.get(i + 1);
 
-            state = new ConditionalCalculator()
-              .calculate(state, cond, new Comparison(record).compare(comp));
+            state = condition.resolve(state, compare.compare(record));
           }
         }
 
@@ -69,214 +53,247 @@ public class Filter {
     }
   }
 
-  public class Comparison {
-    SObject sObj;
-
-    public Comparison(SObject sObj) {
-      this.sObj = sObj;
-    }
-
-    public Boolean equals(String field, Object value) {
-      return this.sObj.get(field) == value;
-    }
-
-    public Boolean notEquals(String field, Object value) {
-      return this.sObj.get(field) != value;
-    }
-
-    public Boolean lessThan(String field, Integer value) {
-      return (Integer) this.sObj.get(field) < value;
-    }
-
-    public Boolean lessThan(String field, Datetime value) {
-      return (Datetime) this.sObj.get(field) < value;
-    }
-
-    public Boolean greaterThan(String field, Integer value) {
-      return (Integer) this.sObj.get(field) > value;
-    }
-
-    public Boolean lessThanOrEqual(String field, Integer value) {
-      return (Integer) this.sObj.get(field) <= value;
-    }
-
-    public Boolean greaterThanOrEqual(String field, Integer value) {
-      return (Integer) this.sObj.get(field) >= value;
-    }
-
-    public Boolean compare(Compare compare) {
-      String field = compare.field;
-      Object value = compare.value;
-      switch on compare.operator {
-        when equals {
-          return this.equals(field, value);
-        }
-        when notEquals {
-          return this.notEquals(field, value);
-        }
-        when lessThan {
-          return this.lessThan(field, value);
-        }
-        when greaterThan {
-          return this.greaterThan(field, value);
-        }
-        when lessThanOrEq {
-          return this.lessThanOrEqual(field, value);
-        }
-        when greaterThanOrEq {
-          return this.greaterThanOrEqual(field, value);
-        }
-      }
-      return null;
-    }
-  }
-
-  private class Compare {
+  /**
+   * Container for comparison methods
+   */
+  public class ComparisonBuilder {
     public String field;
-    public Filter.Operator operator;
-    public Object value;
-    ConditionalManager manager;
+    FilterManager manager;
 
-    public Compare(String field, ConditionalManager manager) {
+    public ComparisonBuilder(String field, FilterManager manager) {
       this.field = field;
       this.manager = manager;
     }
 
-    public Conditional equals(Object value) {
-      this.operator = Filter.Operator.equals;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder equals(Object value) {
+      this.manager.addComparison(
+        new Equals(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    public Conditional notEquals(Object value) {
-      this.operator = Filter.Operator.notEquals;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder notEquals(Object value) {
+      this.manager.addComparison(
+        new NotEquals(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    public Conditional lessThan(Object value) {
-      this.operator = Filter.Operator.lessThan;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder lessThan(Object value) {
+      this.manager.addComparison(
+        new LessThan(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    public Conditional greaterThan(Object value) {
-      this.operator = Filter.Operator.greaterThan;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder greaterThan(Object value) {
+      this.manager.addComparison(
+        new GreaterThan(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    public Conditional lessThanOrEqual(Object value) {
-      this.operator = Filter.Operator.lessThanOrEq;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder lessThanOrEqual(Object value) {
+      this.manager.addComparison(
+        new LessThanOrEq(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    public Conditional greaterThanOrEqual(Object value) {
-      this.operator = Filter.Operator.greaterThanOrEq;
-      this.value = value;
-      return this.newConditional();
+    public ConditionalBuilder greaterThanOrEqual(Object value) {
+      this.manager.addComparison(
+        new GreaterThanOrEq(field, value)
+      );
+      return new ConditionalBuilder(this.manager);
     }
 
-    private Conditional newConditional() {
-      this.manager.addCompare(this);
-      return new Conditional(this.manager);
+
+  }
+
+  public abstract class Comparison {
+
+    protected String field;
+    protected Object value;
+
+    public Comparison(String field, Object value) {
+      this.field = field;
+      this.value = value;
+    }
+
+    abstract Boolean compare(SObject record);
+  }
+
+  private class Equals extends Comparison {   
+    
+    public Equals(String field, Object value) {
+      super(field, value);
+    }
+    
+    public override Boolean compare(SObject record) {
+      return record.get(field) == value;
     }
   }
 
-  private class Conditional {
-    ConditionalManager manager;
-    Filter.Condition cond;
-
-    public Conditional(ConditionalManager manager) {
-      this.manager = manager;
+  private class NotEquals extends Comparison {
+    public NotEquals(String field, Object value) {
+      super(field, value);
     }
-
-    public Compare andField(String field) {
-      this.cond = Filter.Condition.c_and;
-      return this.newCompare(field);
+    public override Boolean compare(SObject record) {
+      return record.get(field) != value;
     }
+  }
 
-    public Compare nandField(String field) {
-      this.cond = Filter.Condition.c_nand;
-      return this.newCompare(field);
+
+  private class LessThan extends Comparison {
+    public LessThan(String field, Object value) {
+      super(field, value);
     }
+    public override Boolean compare(SObject record) {
+      if (value instanceof Integer) {
+        return (Integer) record.get(field) < (Integer) value;
+      } else if (value instanceof Double) {
+        return (Double) record.get(field) < (Double) value;
+      } else if (value instanceof DateTime) {
+        return (DateTime) record.get(field) < (Datetime) value;
+      }
 
-    public Compare orField(String field) {
-      this.cond = Filter.Condition.c_or;
-      return this.newCompare(field);
+      return false;
     }
+  }
 
-    public Compare xorField(String field) {
-      this.cond = Filter.Condition.c_xor;
-      return this.newCompare(field);
+  private class GreaterThan extends Comparison {
+    public GreaterThan(String field, Object value) {
+      super(field, value);
     }
+    public override Boolean compare(SObject record) {
+      if (value instanceof Integer) {
+        return (Integer) record.get(field) > (Integer) value;
+      } else if (value instanceof Double) {
+        return (Double) record.get(field) > (Double) value;
+      } else if (value instanceof DateTime) {
+        return (DateTime) record.get(field) > (Datetime) value;
+      }
 
-    public Compare norField(String field) {
-      this.cond = Filter.Condition.c_nor;
-      return this.newCompare(field);
+      return false;
     }
+  }
 
-    private Compare newCompare(String field) {
-      this.manager.addCondition(this.cond);
-      return new Compare(field, this.manager);
+  private class LessThanOrEq extends Comparison {
+    public LessThanOrEq(String field, Object value) {
+      super(field, value);
     }
+    public override Boolean compare(SObject record) {
 
-    public void done() {
-      this.manager.runFilter();
+      if (value instanceof Integer) {
+        return (Integer) record.get(field) <= (Integer) value;
+      } else if (value instanceof Double) {
+        return (Double) record.get(field) <= (Double) value;
+      } else if (value instanceof DateTime) {
+        return (DateTime) record.get(field) <= (Datetime) value;
+      }
+
+      return false;
+    }
+  }
+
+  private class GreaterThanOrEq extends Comparison {
+    public GreaterThanOrEq(String field, Object value) {
+      super(field, value);
+    }
+    public override Boolean compare(SObject record) {
+      if (value instanceof Integer) {
+        return (Integer) record.get(field) >= (Integer) value;
+      } else if (value instanceof Double) {
+        return (Double) record.get(field) >= (Double) value;
+      } else if (value instanceof DateTime) {
+        return (DateTime) record.get(field) >= (Datetime) value;
+      }
+
+      return false;
     }
   }
 
   /**
-   * Cumulative conditional
+   * Container for conditional methods
    */
-  private class ConditionalCalculator {
-    public ConditionalCalculator() {
+  public class ConditionalBuilder {
+    FilterManager manager;
+
+    public ConditionalBuilder(FilterManager manager) {
+      this.manager = manager;
     }
 
-    public Boolean calculate(
-      Boolean bool1,
-      Filter.Condition cond,
-      Boolean bool2
-    ) {
-      switch on cond {
-        when c_and {
-          return this.c_and(bool1, bool2);
-        }
-        when c_nand {
-          return this.c_nand(bool1, bool2);
-        }
-        when c_or {
-          return this.c_or(bool1, bool2);
-        }
-        when c_xor {
-          return this.c_xor(bool1, bool2);
-        }
-        when c_nor {
-          return this.c_nor(bool1, bool2);
-        }
-      }
+    public ComparisonBuilder andField(String field) {
+      this.manager.addConditional(
+        new C_And()
+      );
+      return new ComparisonBuilder(field, this.manager);
     }
 
-    public Boolean c_and(Boolean bool1, Boolean bool2) {
-      return bool1 && bool2;
+    public ComparisonBuilder nandField(String field) {
+      this.manager.addConditional(
+        new C_Nand()
+      );
+      return new ComparisonBuilder(field, this.manager);
     }
 
-    public Boolean c_nand(Boolean bool1, Boolean bool2) {
-      return !(bool1 && bool2);
+    public ComparisonBuilder orField(String field) {
+      this.manager.addConditional(
+        new C_Or()
+      );
+      return new ComparisonBuilder(field, this.manager);
     }
 
-    public Boolean c_or(Boolean bool1, Boolean bool2) {
-      return bool1 || bool2;
+    public ComparisonBuilder xorField(String field) {
+      this.manager.addConditional(
+        new C_Xor()
+      );
+      return new ComparisonBuilder(field, this.manager);
     }
 
-    public Boolean c_xor(Boolean bool1, Boolean bool2) {
-      return (bool1 || bool2) && !(bool1 || bool2);
+    public ComparisonBuilder norField(String field) {
+      this.manager.addConditional(
+        new C_Nor()
+      );
+      return new ComparisonBuilder(field, this.manager);
     }
 
-    public Boolean c_nor(Boolean bool1, Boolean bool2) {
-      return !(bool1 || bool2);
+    public List<SObject> run() {
+      return this.manager.runFilter();
     }
   }
+
+
+  public interface IConditional {
+    Boolean resolve(Boolean a, Boolean b);
+  }
+  // C_* prefixes due to reserved names 
+  private class C_And implements IConditional {
+    public Boolean resolve(Boolean a, Boolean b) {
+      return a && b;
+    }
+  } 
+
+  private class C_Nand implements IConditional {
+    public Boolean resolve(Boolean a, Boolean b) {
+      return !(a && b);
+    }
+  } 
+  private class C_Or implements IConditional {
+    public Boolean resolve(Boolean a, Boolean b) {
+      return a || b;
+    }
+  } 
+  private class C_Xor implements IConditional {
+    public Boolean resolve(Boolean a, Boolean b) {
+      return (a || b) && !(a || b);
+    }
+  } 
+  private class C_Nor implements IConditional {
+    public Boolean resolve(Boolean a, Boolean b) {
+      return !(a || b);
+    }
+  } 
+
 }
 

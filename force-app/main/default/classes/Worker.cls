@@ -18,6 +18,16 @@ public class Worker {
     this.relationshipsByType = new Map<Schema.SObjectType, Relationships>();
   }
 
+  /**
+   * Static constructor which returns mock instance in test context
+   */
+  public static Worker newInstance() {
+    if (Test.isRunningTest())
+      return (Worker) Test.createStub(Worker.class, new WorkerMock());
+
+    return new Worker();
+  }
+
   public class RegisterException extends Exception {
   }
 
@@ -343,6 +353,19 @@ public class Worker {
   private void doDelete() {
     for (Register reg : this.registersByType.values()) {
       this.dml.dmlDelete(reg.getDeletes());
+    }
+  }
+
+  public class WorkerMock implements System.StubProvider {
+    public Object handleMethodCall(
+      Object stubbedObject,
+      String stubbedMethodName,
+      Type returnType,
+      List<Type> listOfParamTypes,
+      List<String> listOfParamNames,
+      List<Object> listOfArgs
+    ) {
+      return null;
     }
   }
 }

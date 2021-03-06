@@ -1,10 +1,11 @@
 /**
  * DML worker
- * 
+ *
  * @author nkskaare
  */
 public class Worker {
   Map<Schema.SObjectType, Register> registersByType;
+  Map<Schema.SObjectType, Relationships> relationshipsByType;
   IDmlHandler dml;
 
   public Worker() {
@@ -14,6 +15,7 @@ public class Worker {
   public Worker(IDmlHandler dml) {
     this.dml = dml;
     this.registersByType = new Map<Schema.SObjectType, Register>();
+    this.registersByType = new Map<Schema.SObjectType, Relationships>();
   }
 
   public class RegisterException extends Exception {
@@ -23,7 +25,7 @@ public class Worker {
    * Record register. Used for records of same SObjectType.
    * Methods for adding multiple records at a time is implemented through Worker.
    */
-  private class Register {
+  private virtual class Register {
     List<SObject> insertRecords = new List<SObject>();
     Map<Id, SObject> updateRecords = new Map<Id, SObject>();
     Map<Schema.SObjectField, List<SObject>> upsertRecords = new Map<Schema.SObjectField, List<SObject>>();
@@ -39,7 +41,6 @@ public class Worker {
       this.insertRecords.add(record);
     }
 
-
     public List<SObject> getInserts() {
       return this.insertRecords;
     }
@@ -52,7 +53,6 @@ public class Worker {
 
       this.updateRecords.put(record.Id, record);
     }
-
 
     public List<SObject> getUpdates() {
       return this.updateRecords.values();
@@ -71,7 +71,6 @@ public class Worker {
       }
     }
 
-
     public Map<Schema.SObjectField, List<SObject>> getUpserts() {
       return this.upsertRecords;
     }
@@ -84,7 +83,6 @@ public class Worker {
 
       this.deleteRecords.put(record.Id, record);
     }
-
 
     public List<SObject> getDeletes() {
       return this.deleteRecords.values();
@@ -163,6 +161,46 @@ public class Worker {
     }
   }
 
+  public interface IRelationship {
+    void resolve();
+  }
+
+  private class Relationship implements IRelationship {
+    public SObject record;
+    public Schema.SObjectField relationField;
+    public Schema.SObjectType relatedTo;
+
+    public void resolve() {
+      this.record.put(this.relationField, this.relatedTo);
+    }
+  }
+
+  private class Relationships {
+    List<IRelationship> relations;
+
+    public Relationships() {
+      this.relations = new List<IRelationship>();
+    }
+
+    public void resolve() {
+      for (IRelationship relation : this.relations) {
+        relation.resolve();
+      }
+    }
+
+    public void add(
+      SObject record,
+      Schema.SObjectField relationField,
+      SObject relatedTo
+    ) {
+      Relationship relation = new Relationship();
+      relation.record = record;
+      relation.relatedToField = relationField;
+      relation.relatedTo = relatedTo;
+      this.relations.add(relation);
+    }
+  }
+
   /**
    * Return register for SObjectType
    */
@@ -173,6 +211,16 @@ public class Worker {
       Register reg = new Register();
       this.registersByType.put(sObjType, reg);
       return reg;
+    }
+  }
+
+  private Relationships getRelationships(Schema.SObjectType sObjType) {
+    if (this.relationshipsByType.containsKey(sObjType)) {
+      return this.relationshipsByType.get(sObjType);
+    } else {
+      Relationships relations = new Relationships();
+      this.relationshipsByType.put(sObjType, relations);
+      return relations;
     }
   }
 
@@ -194,18 +242,6 @@ public class Worker {
     reg.addInsert(record);
   }
 
-  public void registerUpdate(List<SObject> records) {
-    Register reg = this.getRegister(records.getSObjectType());
-    for (SObject record : records) {
-      reg.addUpdate(record);
-    }
-  }
-
-  public void registerUpdate(SObject record) {
-    Register reg = this.getRegister(record.getSObjectType());
-    reg.addUpdate(record);
-  }
-
   public void registerUpdates(List<SObject> records) {
     Register reg = this.getRegister(records.getSObjectType());
     for (SObject record : records) {
@@ -216,6 +252,35 @@ public class Worker {
   public void registerUpdate(SObject record) {
     Register reg = this.getRegister(record.getSObjectType());
     reg.addUpdate(record);
+  }
+
+  public void registerUpserts(List<SObject> records) {
+    this.registerUpserts(
+      records,
+      records.getSObjectType().getDescribe().fields.getMap().get('Id')
+    );
+  }
+
+  public void registerUpserts(
+    List<SObject> records,
+    Schema.SObjectField field
+  ) {
+    Register reg = this.getRegister(records.getSObjectType());
+    for (SObject record : records) {
+      reg.addUpsert(record, field);
+    }
+  }
+
+  public void registerUpsert(SObject record) {
+    this.registerUpsert(
+      record,
+      record.getSObjectType().getDescribe().fields.getMap().get('Id')
+    );
+  }
+
+  public void registerUpsert(SObject record, Schema.SObjectField field) {
+    Register reg = this.getRegister(record.getSObjectType());
+    reg.addUpsert(record, field);
   }
 
   public void registerDelete(List<SObject> records) {
@@ -230,32 +295,47 @@ public class Worker {
     reg.addDelete(record);
   }
 
-  public void commitWork() {
-    dmlInsert();
-    dmlUpsert();
-    dmlUpdate();
-    dmlDelete();
+  public void registerRelationship(
+    SObject record,
+    Schema.SObjectField relationField,
+    SObject relatedTo
+  ) {
+    Relationships relations = this.getRelationships(record.getSObjectType());
+    relations.add(record, relationField, relatedTo);
   }
 
-  private void dmlInsert() {
-    for (Register reg : this.registersByType.values()) {
-      this.dml.dmlInsert(reg.getNews());
+  public void commitWork() {
+    Savepoint sp = Database.setSavepoint();
+    try {
+      doInsert();
+      doUpsert();
+      doUpdate();
+      doDelete();
+    } catch (Exception e) {
+      Database.rollback(sp);
+      throw e;
     }
   }
 
-  private void dmlUpsert() {
+  private void doInsert() {
+    for (Register reg : this.registersByType.values()) {
+      this.dml.dmlInsert(reg.getInserts());
+    }
+  }
+
+  private void doUpsert() {
     for (Register reg : this.registersByType.values()) {
       this.dml.dmlUpsert(reg.getUpserts());
     }
   }
 
-  private void dmlUpdate() {
+  private void doUpdate() {
     for (Register reg : this.registersByType.values()) {
       this.dml.dmlUpdate(reg.getUpdates());
     }
   }
 
-  private void dmlDelete() {
+  private void doDelete() {
     for (Register reg : this.registersByType.values()) {
       this.dml.dmlDelete(reg.getDeletes());
     }

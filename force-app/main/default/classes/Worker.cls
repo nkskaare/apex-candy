@@ -1,5 +1,7 @@
 /**
  * DML worker
+ * 
+ * @author nkskaare
  */
 public class Worker {
   Map<Schema.SObjectType, Register> registersByType;
@@ -17,8 +19,12 @@ public class Worker {
   public class RegisterException extends Exception {
   }
 
+  /**
+   * Record register. Used for records of same SObjectType.
+   * Methods for adding multiple records at a time is implemented through Worker.
+   */
   private class Register {
-    List<SObject> newRecords = new List<SObject>();
+    List<SObject> insertRecords = new List<SObject>();
     Map<Id, SObject> updateRecords = new Map<Id, SObject>();
     Map<Schema.SObjectField, List<SObject>> upsertRecords = new Map<Schema.SObjectField, List<SObject>>();
     Map<Id, SObject> deleteRecords = new Map<Id, SObject>();
@@ -26,21 +32,16 @@ public class Worker {
     public Register() {
     }
 
-    public void addNew(SObject record) {
+    public void addInsert(SObject record) {
       if (record.Id != null)
         throw new RegisterException('Cannot register record with Id as new');
 
-      this.newRecords.add(record);
+      this.insertRecords.add(record);
     }
 
-    // public void addNew(List<SObject> records) {
-    //   for (SObject record : records) {
-    //     this.addNew(record);
-    //   }
-    // }
 
-    public List<SObject> getNews() {
-      return this.newRecords;
+    public List<SObject> getInserts() {
+      return this.insertRecords;
     }
 
     public void addUpdate(SObject record) {
@@ -52,11 +53,6 @@ public class Worker {
       this.updateRecords.put(record.Id, record);
     }
 
-    public void addUpdate(List<SObject> records) {
-      for (SObject record : records) {
-        this.addUpdate(record);
-      }
-    }
 
     public List<SObject> getUpdates() {
       return this.updateRecords.values();
@@ -75,11 +71,6 @@ public class Worker {
       }
     }
 
-    public void addUpsert(List<SObject> records, Schema.SObjectField field) {
-      for (SObject record : records) {
-        this.addUpsert(record, field);
-      }
-    }
 
     public Map<Schema.SObjectField, List<SObject>> getUpserts() {
       return this.upsertRecords;
@@ -94,11 +85,6 @@ public class Worker {
       this.deleteRecords.put(record.Id, record);
     }
 
-    public void addDelete(List<SObject> records) {
-      for (SObject record : records) {
-        this.addDelete(record);
-      }
-    }
 
     public List<SObject> getDeletes() {
       return this.deleteRecords.values();
@@ -193,19 +179,19 @@ public class Worker {
   /**
    * Add new records to Register
    */
-  public void registerNew(List<SObject> records) {
+  public void registerInserts(List<SObject> records) {
     Register reg = this.getRegister(records.getSObjectType());
     for (SObject record : records) {
-      reg.addNew(record);
+      reg.addInsert(record);
     }
   }
 
   /**
    * Add new records to Register
    */
-  public void registerNew(SObject record) {
+  public void registerInsert(SObject record) {
     Register reg = this.getRegister(record.getSObjectType());
-    reg.addNew(record);
+    reg.addInsert(record);
   }
 
   public void registerUpdate(List<SObject> records) {
@@ -220,7 +206,7 @@ public class Worker {
     reg.addUpdate(record);
   }
 
-  public void registerUpdate(List<SObject> records) {
+  public void registerUpdates(List<SObject> records) {
     Register reg = this.getRegister(records.getSObjectType());
     for (SObject record : records) {
       reg.addUpdate(record);

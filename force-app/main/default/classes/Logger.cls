@@ -4,27 +4,13 @@
  */
 public virtual class Logger {
   public System.LoggingLevel logLevel { get; private set; }
-  private Exception e;
-  public Boolean throwException;
 
   public Logger(System.LoggingLevel logLevel) {
     this.setLevel(logLevel);
-    this.throwException = false;
   }
 
   public Logger() {
     this(System.LoggingLevel.WARN);
-  }
-
-  /**
-   * Set Logger to throw runtime exceptions
-   *
-   * @param e class instance of Exception or class extending Exception
-   */
-  public Logger throwOnError(Exception e) {
-    this.e = e;
-    this.throwException = true;
-    return this;
   }
 
   /**
@@ -50,11 +36,6 @@ public virtual class Logger {
         ' : ' +
         err.getMessage()
       );
-
-      if (this.throwException) {
-        this.e.setMessage(err.getMessage());
-        throw this.e;
-      }
     }
   }
 
@@ -134,10 +115,6 @@ public virtual class Logger {
               );
             }
 
-            if (this.throwException) {
-              this.e.setMessage(duplicateResult.getErrorMessage());
-              throw this.e;
-            }
           } else {
             this.handleError(new List<Database.Error>{ error });
           }

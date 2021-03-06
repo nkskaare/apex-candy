@@ -181,7 +181,7 @@ public class Worker {
     public SObject relatedTo;
 
     public void resolve() {
-      this.record.put(this.relationField, this.relatedTo);
+      this.record.put(this.relationField, this.relatedTo.Id);
     }
   }
 
@@ -356,7 +356,8 @@ public class Worker {
     }
   }
 
-  public class WorkerMock implements System.StubProvider {
+  @TestVisible
+  private class WorkerMock implements System.StubProvider {
     public Object handleMethodCall(
       Object stubbedObject,
       String stubbedMethodName,

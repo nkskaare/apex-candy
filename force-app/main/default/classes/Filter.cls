@@ -1,3 +1,9 @@
+/**
+ * Inline filtering on field values of SObject records. Possible to chain multiple conditions
+ * and comparisons, but best suitable for simple filters. 
+ * 
+ * @author nkskaare
+ */
 public class Filter {
   FilterManager manager;
 
@@ -24,12 +30,12 @@ public class Filter {
       this.compares.add(comp);
     }
 
-    public void addConditional(Filter.IConditional cond) {
+    public void addConditional(IConditional cond) {
       this.conditionals.add(cond);
     }
 
     /**
-     * Iterates through records and the registerd
+     * Iterates through records and the registered Comparisons and Conditionals
      */
     public List<SObject> runFilter() {
       List<SObject> resultList = new List<SObject>();
@@ -40,7 +46,7 @@ public class Filter {
 
         if (this.conditionals.size() > 0) {
           for (Integer i = 0; i < this.conditionals.size(); i++) {
-            Filter.IConditional condition = this.conditionals.get(i);
+            IConditional condition = this.conditionals.get(i);
             Comparison compare = this.compares.get(i + 1);
 
             state = condition.resolve(state, compare.compare(record));
@@ -69,43 +75,44 @@ public class Filter {
     }
 
     public ConditionalBuilder equals(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new Equals(field, value)
       );
-      return new ConditionalBuilder(this.manager);
     }
 
     public ConditionalBuilder notEquals(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new NotEquals(field, value)
       );
-      return new ConditionalBuilder(this.manager);
     }
 
     public ConditionalBuilder lessThan(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new LessThan(field, value)
       );
-      return new ConditionalBuilder(this.manager);
     }
 
     public ConditionalBuilder greaterThan(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new GreaterThan(field, value)
       );
-      return new ConditionalBuilder(this.manager);
     }
 
     public ConditionalBuilder lessThanOrEqual(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new LessThanOrEq(field, value)
       );
-      return new ConditionalBuilder(this.manager);
     }
 
     public ConditionalBuilder greaterThanOrEqual(Object value) {
-      this.manager.addComparison(
+      return this.newConditional(
         new GreaterThanOrEq(field, value)
+      );
+    }
+
+    private ConditionalBuilder newConditional(Comparison compare) {
+      this.manager.addComparison(
+        compare
       );
       return new ConditionalBuilder(this.manager);
     }
@@ -127,7 +134,6 @@ public class Filter {
   }
 
   private class Equals extends Comparison {   
-    
     public Equals(String field, Object value) {
       super(field, value);
     }
@@ -141,16 +147,17 @@ public class Filter {
     public NotEquals(String field, Object value) {
       super(field, value);
     }
+
     public override Boolean compare(SObject record) {
       return record.get(field) != value;
     }
   }
 
-
   private class LessThan extends Comparison {
     public LessThan(String field, Object value) {
       super(field, value);
     }
+
     public override Boolean compare(SObject record) {
       if (value instanceof Integer) {
         return (Integer) record.get(field) < (Integer) value;
@@ -168,6 +175,7 @@ public class Filter {
     public GreaterThan(String field, Object value) {
       super(field, value);
     }
+
     public override Boolean compare(SObject record) {
       if (value instanceof Integer) {
         return (Integer) record.get(field) > (Integer) value;
@@ -185,8 +193,8 @@ public class Filter {
     public LessThanOrEq(String field, Object value) {
       super(field, value);
     }
-    public override Boolean compare(SObject record) {
 
+    public override Boolean compare(SObject record) {
       if (value instanceof Integer) {
         return (Integer) record.get(field) <= (Integer) value;
       } else if (value instanceof Double) {
@@ -226,25 +234,32 @@ public class Filter {
       this.manager = manager;
     }
 
+    /**
+     * And condition. 
+     */
     public ComparisonBuilder andField(String field) {
-      this.manager.addConditional(
-        new C_And()
+      return this.newComparison(
+        new C_And(),
+        field
       );
-      return new ComparisonBuilder(field, this.manager);
     }
 
+    /**
+     * Nand condition. Boolean state is cumulative, using this condition 
+     * will affect all previous conditions.
+     */
     public ComparisonBuilder nandField(String field) {
-      this.manager.addConditional(
-        new C_Nand()
+      return this.newComparison(
+        new C_Nand(),
+        field
       );
-      return new ComparisonBuilder(field, this.manager);
     }
 
     public ComparisonBuilder orField(String field) {
-      this.manager.addConditional(
-        new C_Or()
+      return this.newComparison(
+        new C_Or(),
+        field
       );
-      return new ComparisonBuilder(field, this.manager);
     }
 
     /**
@@ -252,10 +267,10 @@ public class Filter {
      * will affect all previous conditions.
      */
     public ComparisonBuilder xorField(String field) {
-      this.manager.addConditional(
-        new C_Xor()
+      return this.newComparison(
+        new C_Xor(),
+        field
       );
-      return new ComparisonBuilder(field, this.manager);
     }
 
     /**
@@ -263,8 +278,15 @@ public class Filter {
      * will invert all previous conditions.
      */
     public ComparisonBuilder norField(String field) {
+      return this.newComparison(
+        new C_Nor(),
+        field
+      );
+    }
+
+    private ComparisonBuilder newComparison(IConditional condition, String field) {
       this.manager.addConditional(
-        new C_Nor()
+        condition
       );
       return new ComparisonBuilder(field, this.manager);
     }

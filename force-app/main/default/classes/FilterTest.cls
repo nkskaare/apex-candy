@@ -114,6 +114,5 @@ public class FilterTest {
     System.assertEquals(2, michaelScotts.size());
 
     Test.stopTest();
-    
   }
 }

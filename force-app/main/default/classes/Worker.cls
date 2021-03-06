@@ -15,7 +15,7 @@ public class Worker {
   public Worker(IDmlHandler dml) {
     this.dml = dml;
     this.registersByType = new Map<Schema.SObjectType, Register>();
-    this.registersByType = new Map<Schema.SObjectType, Relationships>();
+    this.relationshipsByType = new Map<Schema.SObjectType, Relationships>();
   }
 
   public class RegisterException extends Exception {
@@ -168,7 +168,7 @@ public class Worker {
   private class Relationship implements IRelationship {
     public SObject record;
     public Schema.SObjectField relationField;
-    public Schema.SObjectType relatedTo;
+    public SObject relatedTo;
 
     public void resolve() {
       this.record.put(this.relationField, this.relatedTo);
@@ -195,7 +195,7 @@ public class Worker {
     ) {
       Relationship relation = new Relationship();
       relation.record = record;
-      relation.relatedToField = relationField;
+      relation.relationField = relationField;
       relation.relatedTo = relatedTo;
       this.relations.add(relation);
     }
@@ -318,7 +318,12 @@ public class Worker {
   }
 
   private void doInsert() {
-    for (Register reg : this.registersByType.values()) {
+    for (Schema.SObjectType sObjType : this.registersByType.keySet()) {
+      Register reg = this.registersByType.get(sObjType);
+      Relationships relations = this.relationshipsByType.get(sObjType);
+
+      relations.resolve();
+
       this.dml.dmlInsert(reg.getInserts());
     }
   }

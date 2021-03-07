@@ -33,9 +33,86 @@ public class TestFactory {
   public class DataBuilderException extends Exception {
   }
 
+  /**
+   * Represents a relationship between to records
+   */
+  private class Relationship {
+
+    public SObject record;
+    public String relatedToField;
+    public SObject relatedTo;
+
+    public Relationship(
+      SObject record,
+      String relatedToField,
+      SObject relatedTo
+    ) {
+      this.record = record;
+      this.relatedToField = relatedToField;
+      this.relatedTo = relatedTo;
+    }
+
+    /**
+     * Add related record to original record
+     */
+    public void resolve() {
+      this.record.put(relatedToField, relatedTo.Id);
+    }
+  }
+
+  /**
+   * Class to resolve relationships and orchestrate data inserting when using addSObject method with commitData
+   */
+  private class Relationships {
+    Map<Schema.SObjectType, List<Relationship>> relations = new Map<Schema.SObjectType, List<Relationship>>();
+
+    public void add(
+      SObject record,
+      String relatedToField,
+      SObject relatedTo
+    ) {
+      Schema.SObjectType relationType = relatedTo.getSObjectType();
+
+      Relationship rel = new Relationship(
+        record,
+        relatedToField,
+        relatedTo
+      );
+
+      if (this.relations.containsKey(relationType)) {
+        this.relations.get(relationType).add(
+          rel
+        );
+      } else {
+        this.relations.put(relationType, new List<Relationship> {rel});
+      }
+    }
+
+    private List<SObject> getRelatedRecords(Schema.SObjectType sObjectType) {
+      List<SObject> relatedRecords = new List<SObject>();
+      for (Relationship rel : this.relations.get(sObjectType)) {
+        relatedRecords.add(rel.relatedTo);
+      }
+      return relatedRecords;
+    }
+
+    public void resolve() {
+      for (Schema.SObjectType sObjType : this.relations.keySet()) {
+        insert getRelatedRecords(sObjType);
+
+        for (Relationship rel : this.relations.get(sObjType)) {
+          rel.resolve();
+        }
+      }
+    }
+  }
+
+
+
   public class DataBuilder {
     Schema.SObjectType sObjectType;
     List<SObject> testData;
+    Relationships relations;
 
     Boolean commitData;
 
@@ -81,11 +158,11 @@ public class TestFactory {
     ) {
       for (SObject data : this.testData) {
         if (this.commitData) {
-          if (sObj.Id == null)
-            throw new TestFactory.DataBuilderException(
-              'SObject added must have a valid Id when committing data'
-            );
-          data.put(relationShipName, sObj.Id);
+          if (sObj.Id == null) {
+            this.relations.add(data, relationshipName, sObj);
+          } else {
+            data.put(relationshipName, sObj);
+          }
         } else {
           data.putSObject(relationshipName, sObj);
         }
@@ -233,6 +310,7 @@ public class TestFactory {
      */
     public List<SObject> commitData() {
       if (commitData) {
+        this.relations.resolve();
         insert this.testData;
         return this.testData;
       } else {

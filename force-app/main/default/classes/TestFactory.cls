@@ -1,3 +1,8 @@
+/**
+ * Test data factory
+ * 
+ * @author nkskaare
+ */
 @isTest
 public class TestFactory {
   static Integer mockIdCount = 0;

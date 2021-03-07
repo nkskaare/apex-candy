@@ -34,7 +34,7 @@ public class TestFactory {
   }
 
   /**
-   * Represents a relationship between to records
+   * Represents a relationship between two records
    */
   private class Relationship {
 
@@ -53,7 +53,7 @@ public class TestFactory {
     }
 
     /**
-     * Add related record to original record
+     * Resolve to relationship, add parent record to record
      */
     public void resolve() {
       this.record.put(relatedToField, relatedTo.Id);
@@ -61,11 +61,18 @@ public class TestFactory {
   }
 
   /**
-   * Class to resolve relationships and orchestrate data inserting when using addSObject method with commitData
+   * Class to register resolve relationships and orchestrate data inserting when using addSObject method with commitData
    */
   private class Relationships {
     Map<Schema.SObjectType, List<Relationship>> relations = new Map<Schema.SObjectType, List<Relationship>>();
 
+    /**
+     * Add a new relationship to the register
+     * 
+     * @param record the record to add relationship to
+     * @param relatedToField relationship field on record
+     * @param relatedTo the parent record to relate to
+     */
     public void add(
       SObject record,
       String relatedToField,
@@ -88,6 +95,12 @@ public class TestFactory {
       }
     }
 
+    /**
+     * Get parent records of a specific SObjectType to be 
+     * inserted before resolving relationship
+     * 
+     * @param sObjectType
+     */
     private List<SObject> getRelatedRecords(Schema.SObjectType sObjectType) {
       List<SObject> relatedRecords = new List<SObject>();
       for (Relationship rel : this.relations.get(sObjectType)) {
@@ -96,12 +109,15 @@ public class TestFactory {
       return relatedRecords;
     }
 
+    /**
+     * Insert registered relationship records and add the Id to test data records
+     */
     public void resolve() {
       for (Schema.SObjectType sObjType : this.relations.keySet()) {
         insert getRelatedRecords(sObjType);
 
-        for (Relationship rel : this.relations.get(sObjType)) {
-          rel.resolve();
+        for (Relationship relation : this.relations.get(sObjType)) {
+          relation.resolve();
         }
       }
     }

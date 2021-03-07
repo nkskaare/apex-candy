@@ -19,11 +19,16 @@ Clone this repo and deploy the classes to your org.
 Usage example of Request class and how to make a simple GET request against an API with the full url `https://hostname.com/end/point?param=1`, and get the returned JSON parsed into a Map.
 
 ```
-  Request req = new Request('https://hostname.com/');
-  req.setParameter('param', '1');
-  req.get('end/point');
+  Request request = new Request();
 
-  Map<String, Object> res = ((Request.Response) req.response).asMap()
+  Request.Url url = new Url('https://hostname.com/')
+    .setParameter('param', '1');
+    .setPath('end/point');
+
+  HttpRequest req = request.newRequest(url);
+  HttpResponse res = request.get(req);
+
+  Map<String, Object> res = request.getAsMap(res);
 
 ```
 
@@ -102,7 +107,7 @@ The filter class filters a list of SObjects based on the criteria you specify.
 
 List<Account> dunderMifflins = (List<Account>) new Filter(accounts)
   .byField('Name')
-  .equals('Dunder Mifflin)
+  .equals('Dunder Mifflin')
   .run();
 
 ```

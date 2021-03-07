@@ -1,7 +1,5 @@
-
 @isTest
 public class TestFactory {
-
   static Integer mockIdCount = 0;
   static final String ID_PATTERN = '000000000000';
 
@@ -226,23 +224,21 @@ public class TestFactory {
     }
   }
 
-  
-    /**
-     * Generate a mock Id for the given SObjectType
-     * 
-     * @param sObjectType
-     */
-    public static Id generateMockId(Schema.SObjectType sObjectType) {
-      String keyPrefix = sobjectType.getDescribe().getKeyPrefix();
-      mockIdCount++;
-  
-      String mockIdPrefix = ID_PATTERN.substring(
-        0,
-        12 - String.valueOf(mockIdCount).length()
-      );
-  
-      return Id.valueOf(keyPrefix + mockIdPrefix + mockIdCount);
-    }
+  /**
+   * Generate a mock Id for the given SObjectType
+   *
+   * @param sObjectType
+   */
+  public static Id generateMockId(Schema.SObjectType sObjectType) {
+    String keyPrefix = sobjectType.getDescribe().getKeyPrefix();
+    mockIdCount++;
+
+    String mockIdPrefix = ID_PATTERN.substring(
+      0,
+      12 - String.valueOf(mockIdCount).length()
+    );
+
+    return Id.valueOf(keyPrefix + mockIdPrefix + mockIdCount);
   }
 
   /**

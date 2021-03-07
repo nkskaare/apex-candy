@@ -126,6 +126,15 @@ public virtual class Request {
     }
 
     /**
+     * Simple shorthand creation of new HttpRequest from Url
+     * 
+     * @param url
+     */
+    public virtual HttpRequest newRequest(Request.Url url) {
+        return this.setUrl(url, new HttpRequest);
+    }
+
+    /**
      * Simple creation of a JSON request
      *
      * @param body request body

@@ -60,8 +60,7 @@ public class TestFactory {
           this.commitData
         )
         .get(0);
-      this.addSObject(sObj, relationshipName);
-      return this;
+      return this.addSObject(sObj, relationshipName);
     }
 
     /**

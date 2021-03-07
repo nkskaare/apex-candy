@@ -138,6 +138,8 @@ public class TestFactory {
       Boolean commitData
     ) {
       this.commitData = commitData;
+      if (commitData)
+        this.relations = new Relationships();
 
       this.sObjectType = sObjectType;
       this.testData = sObjects;

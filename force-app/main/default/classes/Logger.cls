@@ -30,6 +30,10 @@ public virtual class Logger {
    */
   public virtual void handleError(List<Database.Error> errors) {
     for (Database.Error err : errors) {
+      if (err instanceof Database.DuplicateError) {
+        this.handleDuplicateError((Database.DuplicateError) err);
+      }
+
       System.debug(
         this.logLevel,
         err.getStatusCode() +
@@ -79,48 +83,29 @@ public virtual class Logger {
   }
 
   /**
-   * General DML duplicate save error logging
+   * General DML duplicate error logging
    *
-   * @param saveResults List of save results after DML operation
+   * @param duplicateError Duplicate error object
    */
-  public virtual void handleDuplicateSave(
-    List<Database.SaveResult> saveResults
+  public void handleDuplicateError(
+    Database.DuplicateError duplicateError
   ) {
-    for (Database.SaveResult saveResult : saveResults) {
-      if (!saveResult.isSuccess()) {
-        System.debug(
-          this.logLevel,
-          'Failed to insert record ' +
-          saveResult.getId() +
-          ' with errors: '
-        );
+    DataCloud.DuplicateResult duplicateResult = duplicateError.getDuplicateResult();
+    System.debug(
+      this.logLevel,
+      'Duplicate Error: ' + duplicateResult.getErrorMessage()
+    );
 
-        for (Database.Error error : saveResult.getErrors()) {
-          if (error instanceof Database.DuplicateError) {
-            Database.DuplicateError duplicateError = (Database.DuplicateError) error;
+    List<DataCloud.MatchRecord> matchRecords = duplicateResult.getMatchResults()[0]
+      .getMatchRecords();
 
-            DataCloud.DuplicateResult duplicateResult = duplicateError.getDuplicateResult();
-            System.debug(
-              this.logLevel,
-              'Duplicate Error: ' + duplicateResult.getErrorMessage()
-            );
-
-            List<DataCloud.MatchRecord> matchRecords = duplicateResult.getMatchResults()[0]
-              .getMatchRecords();
-
-            for (DataCloud.MatchRecord matchRecord : matchRecords) {
-              System.debug(
-                this.logLevel,
-                'MatchRecord: ' + matchRecord.getRecord()
-              );
-            }
-
-          } else {
-            this.handleError(new List<Database.Error>{ error });
-          }
-        }
-      }
+    for (DataCloud.MatchRecord matchRecord : matchRecords) {
+      System.debug(this.logLevel, 'MatchRecord: ' + matchRecord.getRecord());
     }
+  }
+
+  public void writeToLog() {
+
   }
 
   public class StackTrace {

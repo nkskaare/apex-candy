@@ -8,6 +8,9 @@ public class TestFactory {
     this.commitData = commitData;
   }
 
+  /**
+   * Instantiator used when creating data which will be commited to database
+   */
   public static TestFactory newInstance() {
     return new TestFactory(true);
   }
@@ -25,21 +28,11 @@ public class TestFactory {
   public class DataBuilderException extends Exception {
   }
 
-  public class NullAnswer implements fflib_Answer {
-    public NullAnswer() {
-    }
-
-    public Object answer(fflib_InvocationOnMock invocation) {
-      return null;
-    }
-  }
-
   public class DataBuilder {
     Schema.SObjectType sObjectType;
     List<SObject> testData;
 
     Boolean commitData;
-    IDGenerator idGenerator;
 
     public DataBuilder(
       List<SObject> sObjects,
@@ -54,16 +47,19 @@ public class TestFactory {
 
     /**
      * Adds SObject to test data records either as dummy data or as registered
-     * relationship through Unit of Work
+     * relationship through Unit of Work. Automatically chooses first relationship
+     * name returned.
      *
      * @param sObj SObject added to test data
      * @return this
      */
     public TestFactory.DataBuilder addSObject(SObject sObj) {
-      String relationshipName = TestFactory.getRelationshipName(
-        sObj,
-        this.commitData
-      );
+      String relationshipName = TestFactory.getRelationshipNames(
+          sObj.getSObjectType(),
+          this.sObjectType,
+          this.commitData
+        )
+        .get(0);
       this.addSObject(sObj, relationshipName);
       return this;
     }
@@ -109,16 +105,24 @@ public class TestFactory {
       return this;
     }
 
+    /**
+     * Add record type Id to test data
+     *
+     * @param recordType record type name
+     */
     public TestFactory.DataBuilder addRecordType(String recordTypeName) {
-      Id recordTypeId = ApplicationService.getRecordTypeId(
-        recordTypeName,
-        this.sObjectType
-      );
+      Id recordTypeId = this.sObjectType.getDescribe()
+        .getRecordTypeInfosByName()
+        .get(recordTypeName)
+        .getRecordTypeId();
       return this.addFieldValue('RecordTypeId', recordTypeId);
     }
 
     /**
      * Adds field value to all test data records
+     *
+     * @param fieldName name of field
+     * @param fieldValue value to put in field
      */
     public TestFactory.DataBuilder addFieldValue(
       String fieldName,
@@ -132,6 +136,9 @@ public class TestFactory {
 
     /**
      * Adds field value to all test data records
+     *
+     * @param fieldName name of field
+     * @param fieldValue value to put in field
      */
     public TestFactory.DataBuilder addFieldValue(
       Schema.SObjectField fieldName,
@@ -142,6 +149,10 @@ public class TestFactory {
 
     /**
      * Adds field value from field values list to test data records
+     * Input list size must be equal to test data list size
+     *
+     * @param fieldName name of field
+     * @param fieldValues values to put in field
      */
     public TestFactory.DataBuilder addFieldValue(
       String fieldName,
@@ -160,7 +171,9 @@ public class TestFactory {
     }
 
     /**
-     * Apply default values to field on testData
+     * Apply default values to field on test data
+     *
+     * @param fieldName name of field to apply default values
      */
     public TestFactory.DataBuilder applyDefault(Schema.SObjectField field) {
       Object defaultValue = field.getDescribe().getDefaultValue();
@@ -191,11 +204,13 @@ public class TestFactory {
     }
 
     /**
-     * Add an account to testdata
+     * Example use to add Account to test data
      */
     public TestFactory.DataBuilder addAccount() {
       Account a = new Account();
       a.Name = 'Related Account';
+
+      insert a;
       return this.addSObject(a);
     }
 
@@ -209,7 +224,7 @@ public class TestFactory {
     /**
      * Commits data created to database
      *
-     * @return this
+     * @return test data
      * @throws TestFactoryException
      */
     public List<SObject> commitData() {
@@ -225,7 +240,7 @@ public class TestFactory {
   }
 
   /**
-   * Generate a mock Id for the given SObjectType
+   * Utility method. Generate a mock Id for the given SObjectType.
    *
    * @param sObjectType
    */
@@ -242,6 +257,53 @@ public class TestFactory {
   }
 
   /**
+   * Utility method. Finds child relationships of passed SObject and checks
+   * if test data SObjectType is a child. Returns relationship field name
+   * on child. Takes into regard whether SObject is passed as dummy data or not.
+   *
+   * @param parentType the SObjectType to find child relationships for
+   * @param childType the SObjectType to find field name for
+   * @param commitData
+   * @return relationship field name
+   */
+  public static List<String> getRelationshipNames(
+    Schema.SObjectType parentType,
+    Schema.SObjectType childType,
+    Boolean commitData
+  ) {
+    List<String> childFields = new List<String>();
+    for (
+      Schema.ChildRelationship childRelationship : parentType
+        .getDescribe()
+        .getChildRelationships()
+    ) {
+      if (childRelationship.getChildSObject() == childType) {
+        String childField = String.valueOf(childRelationship.getField());
+
+        if (!commitData) {
+          if (childField.endsWith('__c')) {
+            childField = childField.removeEnd('__c') + '__r';
+          } else if (childField.endsWith('Id')) {
+            childField = childField.removeEnd('Id');
+          }
+        }
+
+        childFields.add(childField);
+      }
+    }
+
+    if (childFields.isEmpty()) {
+      throw new TestFactoryException(
+        parentType +
+        ' is not a parent of ' +
+        childType
+      );
+    }
+
+    return childFields;
+  }
+
+  /**
    * Generic method for adding list of sObjects to testData property
    *
    * @param sObjects list of sObjects to add to testData
@@ -252,43 +314,6 @@ public class TestFactory {
       sObjects,
       sObjects.getSObjectType(),
       this.commitData
-    );
-  }
-
-  /**
-   * Utility method. Finds child relationships of passed SObject and checks
-   * if test data SObjectType is a child. Returns relationship field name
-   * on child. Takes into regard whether SObject is passed as dummy data or not.
-   *
-   * @param sObj the SObject to find child relationships for
-   * @return relationship field name
-   */
-  public static String getRelationshipName(SObject sObj, Boolean commitData) {
-    Schema.SObjectType sObjectType = sObj.getSObjectType();
-    for (
-      Schema.ChildRelationship childRelationship : sObjectType
-        .getDescribe()
-        .getChildRelationships()
-    ) {
-      if (childRelationship.getChildSObject() == sObjectType) {
-        String childField = String.valueOf(childRelationship.getField());
-
-        if (commitData) {
-          return childField;
-        } else {
-          if (childField.endsWith('__c')) {
-            return childField.removeEnd('__c') + '__r';
-          } else if (childField.endsWith('Id')) {
-            return childField.removeEnd('Id');
-          }
-        }
-      }
-    }
-
-    throw new TestFactoryException(
-      sObj.getSObjectType() +
-      ' is not a parent of ' +
-      sObjectType
     );
   }
 

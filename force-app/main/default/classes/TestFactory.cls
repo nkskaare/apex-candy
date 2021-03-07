@@ -307,7 +307,6 @@ public class TestFactory {
       Account a = new Account();
       a.Name = 'Related Account';
 
-      insert a;
       return this.addSObject(a);
     }
 

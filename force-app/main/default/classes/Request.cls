@@ -1,399 +1,301 @@
 /**
- * General HTTP client for REST API's with JSON support and URL construction. Works as a layer around HttpRequest and HttpResponse objects.
+ * Collection of useful methods for working with HttpRequest, HttpResponse and Url construction
+ * 
+ * @author nkskaare
  */
-public virtual class Request implements IRequest {
-  public HttpRequest httpRequest { get; private set; }
-  public Request.IResponse response { get; private set; }
-  public Request.Url url { get; private set; }
+public virtual class Request {
 
-  public Request(String hostname) {
-    this.httpRequest = new HttpRequest();
-    this.url = new Request.Url(hostname);
-  }
-
-  public Request() {
-    this.httpRequest = new HttpRequest();
-  }
-
-  /**
-   * Url class constructs and modifies request url
-   */
-  public virtual class Url {
-    public String hostname { get; private set; }
-    public String path { get; private set; }
-    public String endpoint { get; private set; }
-    public Map<String, String> parameters { get; private set; }
-
-    public Url(String hostname) {
-      this(hostname, '');
-    }
-
-    public Url(String hostname, String path) {
-      this.hostname = hostname;
-      this.setPath(path);
-      this.clearParameters();
+    public Request() {
     }
 
     /**
-     * Sets url path
-     * @param  path url path
+     * Url class constructs and modifies Request url
      */
-    public Url setPath(String path) {
-      this.path = path;
-      return this;
+    public virtual class Url {
+        public String hostname { get; private set; }
+        public String path { get; private set; }
+        public Map<String, String> parameters { get; private set; }
+
+        public Url(String hostname) {
+            this(hostname, '');
+        }
+
+        public Url(String hostname, String path) {
+            this.hostname = hostname;
+            this.setPath(path);
+            this.parameters = new Map<String, String>();
+        }
+
+        /**
+         * Sets url path
+         * @param  path url path
+         */
+        public Url setPath(String path) {
+            this.path = path;
+            return this;
+        }
+
+        /**
+         * Add a url parameter to querystring
+         * @param field parameter field
+         * @param value parameter value
+         */
+        public Url setParameter(String field, String value) {
+            this.parameters.put(field, value);
+            return this;
+        }
+
+        /**
+         * Add a url parameter to querystring
+         * @param field parameter field
+         */
+        public Url setParameters(Map<String, String> parameters) {
+            this.parameters.putAll(parameters);
+            return this;
+        }
+
+        /**
+         * Remove a url parameter from querystring
+         * @param field parameter field
+         */
+        public Url removeParameter(String field) {
+            this.parameters.remove(field);
+            return this;
+        }
+
+        /**
+         * Clear all url parameters
+         */
+        public Url clearParameters() {
+            this.parameters.clear();
+            return this;
+        }
+
+        /**
+         * Get final querystring from parameters
+         */
+        public String getQueryString() {
+            return Request.getQueryString(this.parameters);
+        }
+
+        /**
+         * Get complete url/endpoint
+         */
+        public virtual String getEndpoint() {
+            String endpoint = this.hostname + this.path;
+
+            String queryString = getQueryString();
+            if (String.isNotBlank(queryString)) {
+                endpoint += '?' + queryString;
+            }
+            return endpoint;
+        }
     }
 
     /**
-     * Add a url parameter to querystring
-     * @param field parameter field
-     * @param value parameter value
-     */
-    public Url setParameter(String field, String value) {
-      this.parameters.put(field, value);
-      return this;
-    }
-
-    /**
-     * Add a url parameter to querystring
-     * @param field parameter field
-     */
-    public Url setParameters(Map<String, String> parameters) {
-      this.parameters.putAll(parameters);
-      return this;
-    }
-
-    /**
-     * Remove a url parameter from querystring
-     * @param field parameter field
-     */
-    public Url removeParameter(String field) {
-      this.parameters.remove(field);
-      return this;
-    }
-
-    /**
-     * Clear all url parameters
-     */
-    public Url clearParameters() {
-      this.parameters.clear();
-      return this;
-    }
-
-    /**
-     * Get final querystring from parameters
-     */
-    public String getQueryString() {
-      return Request.getQueryString(this.parameters);
-    }
-
-    /**
-     * Get complete url/endpoint
-     */
-    public virtual String getEndpoint() {
-      this.endpoint = hostname + path;
-
-      String queryString = this.getQueryString();
-      if (String.isNotBlank(queryString)) {
-        this.endpoint += '?' + queryString;
-      }
-      return this.endpoint;
-    }
-  }
-
-  public interface IResponse {
-    void setResponse(HttpResponse res);
-
-    Boolean isSuccess();
-
-    String status();
-  }
-
-  /**
-   * Response class serializes JSON. Works as a layer around HttpResponse.
-   */
-  public virtual class Response implements IResponse {
-    public HttpResponse httpResponse { get; private set; }
-
-    public Response() {
-    }
-
-    public Response(HttpResponse res) {
-      this.setResponse(res);
-    }
-
-    public void setResponse(HttpResponse res) {
-      this.httpResponse = res;
-    }
-
-    /**
-     * Checks if response is success. Overridable.
+     * Checks if response is success.
      * Status code begins with '2' defined as success.
      */
-    public virtual Boolean isSuccess() {
-      String statusCode = String.valueOf(this.httpResponse.getStatusCode());
-      return (statusCode.left(1) == '2');
-    }
-
-    public virtual String status() {
-      return String.valueOf(this.httpResponse.getStatusCode()) +
-        ' : ' +
-        this.httpResponse.getStatus();
+    public virtual Boolean isSuccess(HttpResponse res) {
+        String statusCode = String.valueOf(res.getStatusCode());
+        return (statusCode.left(1) == '2');
     }
 
     /**
-     * Parse JSON string to map
+     * Status code and message as one string, for logging purposes
      */
-    public Map<String, Object> asMap() {
-      return (Map<String, Object>) JSON.deserializeUntyped(
-        this.httpResponse.getBody()
-      );
+    public virtual String getStatusMessage(HttpResponse res) {
+        return String.valueOf(res.getStatusCode()) + ' : ' + res.getStatus();
     }
 
     /**
-     * Parse JSON string to object
+     * Parse JSON string response to map
      */
-    public Object asObject(Type apexType) {
-      return JSON.deserialize(this.httpResponse.getBody(), apexType);
+    public Map<String, Object> getAsMap(HttpResponse res) {
+        return (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
     }
 
     /**
-     * Get response as string
+     * Parse JSON string response to object
      */
-    public String asString() {
-      return this.httpResponse.getBody();
+    public Object getAsObject(Type apexType, HttpResponse res) {
+        return JSON.deserialize(res.getBody(), apexType);
+    }
+
+    public class SendException extends Exception {
     }
 
     /**
-     * Get response object
+     * Simple creation of a JSON request
+     *
+     * @param body request body
+     * @param url request url
      */
-    public HttpResponse raw() {
-      return this.httpResponse;
-    }
-  }
-
-  public class SendException extends Exception {
-  }
-
-  /**
-   * Set hostname for request
-   */
-  public void setHostname(String hostname) {
-    this.url = new Request.Url(hostname);
-  }
-
-  public virtual void authorize() {
-  }
-
-  /**
-   * Can be extended and used with API's requiring authentication.
-   */
-  public virtual Boolean isAuthorized() {
-    return true;
-  }
-
-  public void resetRequest() {
-    this.httpRequest = new HttpRequest();
-    this.url.clearParameters();
-  }
-
-  public virtual void setResponse(HttpResponse res) {
-    Type cls = Type.forName('Request.Response');
-    this.setResponse(res, cls);
-  }
-
-  public void setResponse(HttpResponse res, Type cls) {
-    this.response = (IResponse) cls.newInstance();
-    this.response.setResponse(res);
-  }
-
-  public void setHeaders(Map<String, String> headers) {
-    for (String key : headers.keySet()) {
-      this.httpRequest.setHeader(key, headers.get(key));
-    }
-  }
-
-  /**
-   * Make POST call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void post(String body, String path) {
-    this.httpRequest.setBody(body);
-    this.send(path, 'POST');
-  }
-
-  /**
-   * Make POST call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void post(Map<String, Object> body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.post(ApplicationService.mapToJSON(body), path);
-  }
-
-  /**
-   * Make POST call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void post(Object body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.post(JSON.serialize(body, true), path);
-  }
-
-  /**
-   * Make GET call
-   * @param path
-   */
-  public virtual void get(String path) {
-    this.send(path, 'GET');
-  }
-
-  /**
-   * Make PUT call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void put(String body, String path) {
-    this.httpRequest.setBody(body);
-    this.send(path, 'PUT');
-  }
-
-  /**
-   * Make PUT call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void put(Map<String, Object> body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.put(ApplicationService.mapToJSON(body), path);
-  }
-
-  /**
-   * Make PUT call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void put(Object body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.put(JSON.serialize(body, true), path);
-  }
-
-  /**
-   * Make PATCH call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void patch(String body, String path) {
-    this.httpRequest.setBody(body);
-    this.send(path, 'PATCH');
-  }
-
-  /**
-   * Make PATCH call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void patch(Map<String, Object> body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.patch(ApplicationService.mapToJSON(body), path);
-  }
-
-  /**
-   * Make PATCH call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void patch(Object body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.patch(JSON.serialize(body, true), path);
-  }
-
-  /**
-   * Make DELETE call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void del(String body, String path) {
-    this.httpRequest.setBody(body);
-    this.send(path, 'DELETE');
-  }
-
-  /**
-   * Make DELETE call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void del(Map<String, Object> body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.del(ApplicationService.mapToJSON(body), path);
-  }
-
-  /**
-   * Make DELETE call
-   * @param body Request body
-   * @param path Request url path
-   */
-  public virtual void del(Object body, String path) {
-    this.httpRequest.setHeader('Content-Type', 'application/json');
-    this.del(JSON.serialize(body, true), path);
-  }
-
-  /**
-   * Send request
-   * @param body request body
-   * @param path request url path
-   * @param method request method
-   */
-  public virtual void send(String body, String path, String method) {
-    this.httpRequest.setBody(body);
-    this.send(path, method);
-  }
-
-  /**
-   * Send request
-   * @param path request url path
-   * @param method request method
-   */
-  public virtual void send(String path, String method) {
-    this.httpRequest.setMethod(method);
-    this.url.setPath(path);
-    this.send();
-  }
-
-  /**
-   * Send request
-   * @throws Request.SendException
-   */
-  public virtual void send() {
-    this.httpRequest.setEndpoint(this.url.getEndpoint());
-    System.debug(this.httpRequest.getEndpoint());
-    this.setResponse(new Http().send(this.httpRequest));
-    if (!this.response.isSuccess()) {
-      throw new SendException(this.response.status());
-    }
-    this.resetRequest();
-  }
-
-  /**
-   * Generate querystring from map
-   * @param parameters Map of field value pairs
-   * @return querystring
-   */
-  public static String getQueryString(Map<String, String> parameters) {
-    String queryString = '';
-    List<String> fields = new List<String>(parameters.keySet());
-
-    for (Integer i = 0; i < fields.size(); i++) {
-      String field = fields[i];
-      String value = parameters.get(field);
-      queryString += field + '=' + value;
-      if (i != fields.size() - 1) {
-        queryString += '&';
-      }
+    public virtual HttpRequest newJSONRequest(
+        Map<String, Object> body,
+        Request.Url url
+    ) {
+        HttpRequest req = new HttpRequest();
+        req.setBody(Request.mapToJSON(body));
+        this.setHeaders(
+            new Map<String, String>{ 'Content-Type' => 'application/json' },
+            req
+        );
+        this.setUrl(url, req);
+        return req;
     }
 
-    return queryString;
-  }
+    /**
+     * Set headers on request
+     *
+     * @param headers Map containting headers key and values
+     * @param req Request to set headers on
+     */
+    public HttpRequest setHeaders(
+        Map<String, String> headers,
+        HttpRequest req
+    ) {
+        for (String key : headers.keySet()) {
+            req.setHeader(key, headers.get(key));
+        }
+        return req;
+    }
+
+    /**
+     * Set endpoint on request from Url instance
+     *
+     * @param url Url class instance with hostname and path
+     * @param req Request to set endpoint on
+     */
+    public HttpRequest setUrl(Request.Url url, HttpRequest req) {
+        req.setEndpoint(url.getEndpoint());
+        return req;
+    }
+
+    /**
+     * Shorthand POST request
+     *
+     * @param req HttpRequest object
+     */
+    public virtual HttpResponse post(HttpRequest req) {
+        req.setMethod('POST');
+        return this.send(req);
+    }
+
+    /**
+     * Shorthand GET request
+     *
+     * @param req HttpRequest object
+     */
+    public virtual HttpResponse get(HttpRequest req) {
+        req.setMethod('GET');
+        return this.send(req);
+    }
+
+    /**
+     * Shorthand PUT request
+     *
+     * @param req HttpRequest object
+     */
+    public virtual HttpResponse put(HttpRequest req) {
+        req.setMethod('PUT');
+        return this.send(req);
+    }
+
+    /**
+     * Shorthand PATCH request
+     *
+     * @param req HttpRequest object
+     */
+    public virtual HttpResponse patch(HttpRequest req) {
+        req.setMethod('PATCH');
+        return this.send(req);
+    }
+
+    /**
+     * Shorthand DELETE request
+     *
+     * @param req HttpRequest object
+     */
+    public virtual HttpResponse del(HttpRequest req) {
+        req.setMethod('DELETE');
+        return this.send(req);
+    }
+
+    /**
+     * General send HttpRequest method and response check
+     *
+     * @param req HttpRequest object
+     * @throws SendException
+     */
+    public virtual HttpResponse send(HttpRequest req) {
+        HttpResponse res = new Http().send(req);
+
+        if (!(this.isSuccess(res))) {
+            throw new SendException(this.getStatusMessage(res));
+        }
+        return res;
+    }
+
+    /**
+     * Generate querystring from map
+     * @param parameters Map of field value pairs
+     * @return querystring
+     */
+    public static String getQueryString(Map<String, String> parameters) {
+        String queryString = '';
+        List<String> fields = new List<String>(parameters.keySet());
+
+        for (Integer i = 0; i < fields.size(); i++) {
+            String field = fields[i];
+            String value = parameters.get(field);
+            queryString += field + '=' + value;
+            if (i != fields.size() - 1) {
+                queryString += '&';
+            }
+        }
+
+        return queryString;
+    }
+
+    /**
+     * Converts a map of different datatypes, but depth of 1, to a JSON string.
+     * Avoids the need to create a class for simple JSON generation.
+     *
+     * @param dataMap
+     */
+    public static String mapToJSON(Map<String, Object> dataMap) {
+        JSONGenerator generator = JSON.createGenerator(true);
+
+        generator.writeStartObject();
+        for (String field : dataMap.keySet()) {
+            Object value = dataMap.get(field);
+
+            if (value instanceof String) {
+                generator.writeStringField(field, (String) value);
+            } else if (value instanceof Integer) {
+                generator.writeNumberField(field, (Integer) value);
+            } else if (value instanceof Decimal) {
+                generator.writeNumberField(field, (Decimal) value);
+            } else if (value instanceof Long) {
+                generator.writeNumberField(field, (Long) value);
+            } else if (value instanceof Id) {
+                generator.writeIdField(field, (Id) value);
+            } else if (value instanceof Boolean) {
+                generator.writeBooleanField(field, (Boolean) value);
+            } else if (value instanceof Datetime) {
+                generator.writeDateTimeField(field, (Datetime) value);
+            } else if (value instanceof Date) {
+                generator.writeDateField(field, (Date) value);
+            } else if (value != null) {
+                generator.writeObjectField(field, value);
+            } else {
+                generator.writeNullField(field);
+            }
+        }
+        generator.writeEndObject();
+
+        generator.close();
+        return generator.getAsString();
+    }
 }

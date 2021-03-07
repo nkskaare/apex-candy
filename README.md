@@ -10,6 +10,8 @@ Clone this repo and deploy the classes to your org.
 
 > Note that some of the classes are dependent on [FFlib](https://github.com/apex-enterprise-patterns/fflib-apex-mocks)
 
+> Update: This dependency has been removed, and classes now aim to not be dependent on other classes. This makes it possible to cherry-pick the classes you want to use. 
+
 ## Examples
 
 ### Request
@@ -30,13 +32,20 @@ The real power of the request class is that it can be extended to easily build a
 ```
   class ExampleClient extends Request {
 
+    Request.Url baseUrl;
+
     public ExampleClient() {
-      super('https://example.api.com/');
+      this.baseUrl = new Url('https://example.api.com/');
     }
     
-    public void getUsers(Integer numberOfUsers) {
-      this.setParameter('n', String.valueOf(numberOfUsers));
-      this.get('users');
+    public HttpResponse getUsers(Integer numberOfUsers) {
+      Url usersUrl = this.baseUrl.clone()
+        .setPath('users')
+        .setParameter('n', String.valueOf(numberOfUsers));
+
+      HttpRequest req = this.newRequest(usersUrl);
+
+      return this.get(req);
     }
 
   }
@@ -47,9 +56,9 @@ A GET call to `https://example.api.com/users?n=5` would then simply be done by
 
 ```
   ExampleClient client = new ExampleClient();
-  client.getUsers(5);
+  HttpResponse res = client.getUsers(5);
   
-  Map<String, Object> res = ((Request.Response) client.response).asMap();
+  Map<String, Object> resMap = client.getAsMap(res); 
 ```
 
 ### TestFactory
@@ -83,4 +92,17 @@ The logger class encapsulates debug messages. By using this class, resulting cod
   Logger log = new Logger(System.LoggingLevel.INFO);
   log.handleSave(sr);
   
+```
+
+### Filter
+
+The filter class filters a list of SObjects based on the criteria you specify.
+
+```
+
+List<Account> dunderMifflins = (List<Account>) new Filter(accounts)
+  .byField('Name')
+  .equals('Dunder Mifflin)
+  .run();
+
 ```

@@ -6,6 +6,9 @@
 .sfdx/
 .localdevserver/
 
+# Python cache
+**/__pycache__/**
+
 # LWC VSCode autocomplete
 **/lwc/jsconfig.json
 

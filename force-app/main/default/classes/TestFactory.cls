@@ -217,6 +217,8 @@ public class TestFactory {
       return this.addFieldValue('RecordTypeId', recordTypeId);
     }
 
+
+
     /**
      * Adds field value to all test data records
      *
@@ -231,6 +233,27 @@ public class TestFactory {
         record.put(fieldName, fieldValue);
       }
       return this;
+    }
+
+    /**
+     * Takes a string and where substring '{!i}'' will be replaced by indexed number
+     */
+    public TestFactory.DataBuilder addMergeValue(String fieldName, String mergeString) {
+      if (!mergeString.contains('{!i}'))
+        throw new TestFactory.DataBuilderException('Provided string must contain "{!i}" to merge values');
+
+      List<String> fieldValues = new List<String>();
+      for (Integer i = 0; i < this.testData.size(); i++) {
+        fieldValues.add(
+          mergeValue(mergeString, 'i', String.valueOf(i))
+        );
+      }
+      return this;
+    }
+
+    private String mergeValue(String mergeString, String mergeSubStr, String value) {
+      String pattern = '\\{!' + mergeSubStr + '\\}';
+      return mergeString.replaceAll(pattern, value);
     }
 
     /**
@@ -403,9 +426,9 @@ public class TestFactory {
   }
 
   /**
-   * Generic method for adding list of sObjects to testData property
+   * Instantiate new DataBuilder with sObjects
    *
-   * @param sObjects list of sObjects to add to testData
+   * @param sObjects list of sObjects to add to DataBuilder
    * @return this
    */
   public TestFactory.DataBuilder createSObjects(List<SObject> sObjects) {

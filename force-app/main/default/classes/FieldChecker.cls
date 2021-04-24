@@ -1,5 +1,5 @@
 /**
- * Class for checking if fields is changed on a list of records
+ * Class for checking if multiple fields is changed on a list of records
  */
 public class FieldChecker {
     public List<SObject> records;
